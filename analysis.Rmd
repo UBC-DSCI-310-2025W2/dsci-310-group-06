@@ -60,7 +60,7 @@ stroke_colnames <- stroke |> colnames() |> make.names() |> tolower()
 colnames(stroke) <- stroke_colnames
 
 #Convert Unknown's to NA
-stroke <- stroke |> na_if("Unknown")
+stroke <- stroke |> mutate(smoking_status = na_if(smoking_status, "Unknown"))
 
 #Convert categorical vars to factors
 stroke <- stroke |> mutate(gender = as_factor(gender), 
