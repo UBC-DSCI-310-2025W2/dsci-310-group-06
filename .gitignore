@@ -1,1 +1,5 @@
 data/*
+*.Rproj
+.Rproj.user
+.Rhistory
+.Rprofile
