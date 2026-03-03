@@ -1,11 +1,11 @@
 name: Publish Docker Image
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - 'Dockerfile'
       - '.github/workflows/publish_docker_image.yml'
-
 jobs:
   build:
     runs-on: ubuntu-latest
