@@ -4,10 +4,11 @@ RUN apt-get update && \
     apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev && \
     apt-get clean
 
-RUN R -e "install.packages(c('tidymodels', 'GGally', 'ranger', 'broom'))"
-
 WORKDIR /project
 
 COPY . /project
+
+RUN R -e "install.packages('renv')"
+RUN R -e "renv::restore()"
 
 CMD ["bash"]
