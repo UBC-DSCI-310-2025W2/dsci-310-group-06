@@ -9,6 +9,6 @@ WORKDIR /project
 COPY . /project
 
 RUN R -e "install.packages('renv')"
-RUN R -e "renv::restore()"
+RUN R -e "renv::restore(prompt = FALSE)"
 
 CMD ["bash"]
