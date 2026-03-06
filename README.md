@@ -17,13 +17,13 @@ Please follow these steps to reproduce the analysis on your local machine:
 3. Execute the Code (Pipeline? tbd)
 4. View Results
 
-#Dependencies
+# Dependencies
 Make sure you have the Rstudio installed. The following libraries are required:
 - Pandas? (TBD)
 - xxx
 - xxx
 
-#Licensing
+# Licensing
 This project is licensed under the following terms (see [License](./LICENSE.md) for full text)
 
 
