@@ -14,8 +14,10 @@ Please follow these steps to reproduce the analysis on your local machine:
 ### 1. Run Docker Image
 To build the image, run:
 `docker build . -t <docker_user>/<image_name>`
+
 To run the image, run:
 `docker run -p 8787:8787 -it <docker_user>/<image_name>`
+
 The webapp will be hosted at localhost:8787. The username is rstudio and the password will be printed to the console. If you wish to specify a specific password, use:
 `docker run -p 8787:8787 -e <PASSWORD> -it <docker_user>/<image_name>`
 
