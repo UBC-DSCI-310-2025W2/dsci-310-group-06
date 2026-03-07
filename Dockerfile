@@ -9,6 +9,5 @@ WORKDIR /project
 COPY . /project
 
 RUN R -e "install.packages('renv')"
-RUN R -e "renv::consent(provided = TRUE); renv::restore()"
 
 CMD ["bash"]
