@@ -16,7 +16,7 @@ Please follow these steps to reproduce the analysis on your local machine:
 
 
 # Dependencies
-Make sure you have the Rstudio installed. The following libraries are required:
+Make sure you have the Rstudio (4.4.2) installed. The following libraries are required:
 - tidyverse
 - tidymodels
 - repr
