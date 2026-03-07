@@ -13,13 +13,13 @@ The research project aimed to accurately predict the occurrence of stroke in pat
 Please follow these steps to reproduce the analysis on your local machine:
 ### 1. Run Docker Image
 To build the image, run:
-`docker build . ${{ secrets.DOCKER_USERNAME }}/dsci310group6:latest .`
+`docker build . navyasehgal/dsci310group6:latest .`
 
 To run the image, run:
-`docker run -p 8787:8787 -it ${{ secrets.DOCKER_USERNAME }}/dsci310group6:latest`
+`docker run -p 8787:8787 -it navyasehgal/dsci310group6:latest`
 
 The webapp will be hosted at localhost:8787. The username is rstudio and the password will be printed to the console. If you wish to specify a specific password, use:
-`docker run -p 8787:8787 -e PASSWORD=<YOUR_PASSWORD> -it ${{ secrets.DOCKER_USERNAME }}/dsci310group6:latest`
+`docker run -p 8787:8787 -e PASSWORD=<YOUR_PASSWORD> -it $navyasehgal/dsci310group6:latest`
 
 ### 2. Run and execute analysis.Rmd
 
