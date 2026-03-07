@@ -11,8 +11,15 @@ The research project aimed to accurately predict the occurrence of stroke in pat
 
 # How to Run Data Analysis
 Please follow these steps to reproduce the analysis on your local machine:
-1. Clone the Repository
-2. Run and execute analysis.Rmd
+### 1. Run Docker Image
+To build the image, run:
+`docker build . -t <docker_user>/<image_name>`
+To run the image, run:
+`docker run -p 8787:8787 -it <docker_user>/<image_name>`
+The webapp will be hosted at localhost:8787. The username is rstudio and the password will be printed to the console. If you wish to specify a specific password, use:
+`docker run -p 8787:8787 -e <PASSWORD> -it <docker_user>/<image_name>`
+
+### 2. Run and execute analysis.Rmd
 
 
 # Dependencies
