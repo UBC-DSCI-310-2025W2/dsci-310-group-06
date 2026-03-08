@@ -13,6 +13,14 @@ Original Authors: Aden Chan, Matthew Chan, Shadib Hossain, Brian Vu
 
 Modified By: Aden Chan, Duncan Harrop, Navya Sehgal, Una Chou
 
+# Abstract
+
+This project investigates whether a patient's likelihood of stroke can be predicted using a set of clinical features from the Stroke Prediction Dataset. The dataset contains 5,110 observations and includes variables such as age, gender, hypertension, heart disease, residence type, average glucose level, BMI, smoking status, work type, marital status, and prior stroke occurrence. After cleaning and wrangling the data, we conducted exploratory data analysis to identify patterns between these predictors and stroke outcomes, then developed a k-nearest neighbors classification model using an 80/20 train-test split and 5-fold cross-validation for model tuning.
+
+Our exploratory analysis suggested that age, hypertension, heart disease, BMI, and average glucose level were the most informative predictors, while variables such as id, work type, and marital status contributed little to model performance. The final model achieved high overall accuracy on the test set, but the dataset was heavily imbalanced and the model classified nearly all cases as "No stroke," failing to meaningfully identify positive stroke cases.
+
+These findings suggest that future work should consider alternative modeling strategies, better methods for handling class imbalance, and additional predictors related to lifestyle, genetics, and medical history.
+
 # Introduction
 
 According to the National Cancer Institute, a stroke occurs when brain tissue is damaged by a loss of blood flow to certain parts of the brain (NIH). It is a significant global health issue, with an annual mortality rate of 5.5 million people worldwide, making it the second leading cause of death. Understanding the factors that contribute to stroke occurrence is crucial for prevention and effective treatment. Age is widely recognized as the strongest determinant of stroke risk, with the likelihood of experiencing a stroke doubling every decade after the age of 55. Additionally, hypertension has been identified as the leading risk factor of stroke in both developing and developed nations (Donker, 2018).
