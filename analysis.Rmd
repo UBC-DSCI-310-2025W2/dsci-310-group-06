@@ -13,6 +13,14 @@ Original Authors: Aden Chan, Matthew Chan, Shadib Hossain, Brian Vu
 
 Modified By: Aden Chan, Duncan Harrop, Navya Sehgal, Una Chou
 
+# Abstract
+
+This project investigates whether a patient's likelihood of stroke can be predicted using a set of clinical features from the Stroke Prediction Dataset. The dataset contains 5,110 observations and includes variables such as age, gender, hypertension, heart disease, residence type, average glucose level, BMI, smoking status, work type, marital status, and prior stroke occurrence. After cleaning and wrangling the data, we conducted exploratory data analysis to identify patterns between these predictors and stroke outcomes, then developed a k-nearest neighbors classification model using an 80/20 train-test split and 5-fold cross-validation for model tuning.
+
+Our exploratory analysis suggested that age, hypertension, heart disease, BMI, and average glucose level were the most informative predictors, while variables such as id, work type, and marital status contributed little to model performance. The final model achieved high overall accuracy on the test set, but the dataset was heavily imbalanced and the model classified nearly all cases as "No stroke," failing to meaningfully identify positive stroke cases.
+
+These findings suggest that future work should consider alternative modeling strategies, better methods for handling class imbalance, and additional predictors related to lifestyle, genetics, and medical history.
+
 # Introduction
 
 According to the National Cancer Institute, a stroke occurs when brain tissue is damaged by a loss of blood flow to certain parts of the brain (NIH). It is a significant global health issue, with an annual mortality rate of 5.5 million people worldwide, making it the second leading cause of death. Understanding the factors that contribute to stroke occurrence is crucial for prevention and effective treatment. Age is widely recognized as the strongest determinant of stroke risk, with the likelihood of experiencing a stroke doubling every decade after the age of 55. Additionally, hypertension has been identified as the leading risk factor of stroke in both developing and developed nations (Donker, 2018).
@@ -164,7 +172,7 @@ stroke_training <- stroke_training |> select(-id)
 To begin our analysis, we employed the ggpairs tool, enabling us to gain a holistic view of the dataset and its clinical variables. By generating a matrix where each variable was plotted against one another with whether a patient had a stroke before, we could visually identify variables that had correlations with one another or with stroke. Consequently, this provided us with valuable insights into the variables that needed further investigation below and those that could be excluded due to their lack of significance in our analysis.
 
 ```{r}
-options(repr.plot.width = 50, repr.plot.height = 30) 
+options(repr.plot.width = 25, repr.plot.height = 25) 
 
 plot_pairs <- stroke |>   
   ggpairs(legend=11,
@@ -178,7 +186,7 @@ plot_pairs <- stroke |>
 
           ggtitle("Figure 1. Matrices of all variable with stroke cases highlighted") +
 
-          theme(plot.title = element_text(hjust = 0, size = 50),
+          theme(plot.title = element_text(hjust = 0, size = 16),
                 axis.text.x = element_text(hjust = .5, color = "black", size=10),
                 axis.text.y = element_text(hjust = .5, color = "black",size=10),
                 legend.position = "bottom")
@@ -196,7 +204,7 @@ stroke_gender <- stroke |>
   ggplot(aes(x = gender, y = percentage, fill = stroke)) +
   geom_bar(stat = "identity", width = .75) +
   labs(x = "\nGender", y = "Percentage", fill = "Stroke", title = "Figure 2. Percentage of Stroke Cases by Gender") +
-  theme(text = element_text(size = 17.5),
+  theme(text = element_text(size = 16),
     plot.title = element_text(hjust = 0.5))
 stroke_gender
 ```
@@ -213,7 +221,7 @@ stroke_age <- stroke |>
   ggplot(aes(x = age, y = percentage, fill = stroke)) +
   geom_bar(stat = "identity", width = .75) +
   labs(x = "\nAge", y = "Percentage", fill = "Stroke", title = "Figure 3. Percentage of Stroke Cases by Age") +
-  theme(text = element_text(size = 17.5),
+  theme(text = element_text(size = 16),
     plot.title = element_text(hjust = 0.5))
 suppressWarnings(print(stroke_age))
 ```
@@ -230,7 +238,7 @@ stroke_hypertension <- stroke |>
   ggplot(aes(x = hypertension, y = percentage, fill = stroke)) +
   geom_bar(stat = "identity", width = .75) +
   labs(x = "\nHypertension", y = "Percentage", fill = "Stroke", title = "Figure 4. Percentage of Stroke Cases by Hypertension") +
-  theme(text = element_text(size = 17.5),
+  theme(text = element_text(size = 16),
     plot.title = element_text(hjust = 0.5))
 stroke_hypertension
 ```
@@ -247,7 +255,7 @@ stroke_heart_disease <- stroke %>%
   ggplot(aes(x = heart_disease, y = percentage, fill = stroke)) +
   geom_bar(stat = "identity", width = .75) +
   labs(x = "\nHeart Disease", y = "Percentage", fill = "Stroke", title = "Figure 5. Percentage of Stroke Cases by Heart Disease") +
-  theme(text = element_text(size = 17.5),
+  theme(text = element_text(size = 16),
     plot.title = element_text(hjust = 0.5))
 stroke_heart_disease
 ```
@@ -264,7 +272,7 @@ stroke_residence <- stroke %>%
   ggplot(aes(x = residence_type, y = percentage, fill = stroke)) +
   geom_bar(stat = "identity", width = .75) +
   labs(x = "\nType of Residence", y = "Percentage", fill = "Stroke", title = "Figure 6. Percentage of Stroke Cases by Type of Residence") +
-  theme(text = element_text(size = 17.5),
+  theme(text = element_text(size = 16),
     plot.title = element_text(hjust = 0.5))
 stroke_residence
 ```
@@ -281,7 +289,7 @@ stroke_avg_glucose_level <- stroke %>%
   ggplot(aes(x = avg_glucose_level, y = percentage, fill = stroke)) +
   geom_bar(stat = "identity", width = .75) +
   labs(x = "\nAverage Glucose Levels", y = "Percentage", fill = "Stroke", title = "Figure 7. Percentage of Stroke Cases by Average Glucose Levels") +
-  theme(text = element_text(size = 17.5),
+  theme(text = element_text(size = 16),
     plot.title = element_text(hjust = 0.5))
 suppressWarnings(print(stroke_avg_glucose_level))
 ```
@@ -298,7 +306,7 @@ stroke_bmi <- stroke %>%
   ggplot(aes(x = bmi, y = percentage, fill = stroke)) +
   geom_bar(stat = "identity", width = .5) +
   labs(x = "\nBMI", y = "Percentage", fill = "Stroke", title = "Figure 8. Percentage of Stroke Cases by BMI") +
-  theme(text = element_text(size = 17.5),
+  theme(text = element_text(size = 16),
     plot.title = element_text(hjust = 0.5))
 suppressWarnings(print(stroke_bmi))
 ```
@@ -315,7 +323,7 @@ stroke_smoking_status <- stroke %>%
   ggplot(aes(x = smoking_status, y = percentage, fill = stroke)) +
   geom_bar(stat = "identity") +
   labs(x = "\nSmoking Status", y = "Percentage", fill = "Stroke", title = "Figure 9. Percentage of Stroke Cases by Smoking Status") +
-  theme(text = element_text(size = 17.5),
+  theme(text = element_text(size = 16),
     plot.title = element_text(hjust = 0.5))
 stroke_smoking_status
 ```
@@ -330,7 +338,7 @@ stroke_worktype_plot <- stroke |>
   ggplot(aes(x = work_type, y = percentage, fill = stroke)) +
   geom_bar(stat = "identity") +
   labs(x = "\nType of Work", y = "Percentage", fill = "Stroke", title = "Figure 10. Percentage of Stroke Cases by Work Type") +
-  theme(text = element_text(size = 17.5),
+  theme(text = element_text(size = 16),
     plot.title = element_text(hjust = 0.5))
 stroke_worktype_plot
 ```
@@ -383,7 +391,7 @@ stroke_age_smoking <- stroke %>%
   geom_bar(aes(y = ..count.. / sum(..count..)), position = "fill", width = .5) +
   facet_wrap(~ smoking_status) +
   labs(x = "Age", y = "Percentage", fill = "Stroke", title = "Figure 13. Percentage of Stroke Cases by Age and Smoking Status") +
-  theme(text = element_text(size = 17.5),
+  theme(text = element_text(size = 16),
     plot.title = element_text(hjust = 0.5))
 
 suppressWarnings(print(stroke_age_smoking))
@@ -409,7 +417,7 @@ ggplot(heartdisease_hypertension, aes(x = hypertension, y = percentage, fill = s
     axis.title.y.right = element_text(color = "red", size = 15, angle = -90, vjust = 0.5),
     axis.title.y.left = element_text(color = "blue", size = 15, angle = -90, vjust = 0.5)
   ) +
-  theme(text = element_text(size = 15),
+  theme(text = element_text(size = 16),
     plot.title = element_text(hjust = 0))+
   scale_y_continuous(
     name = "Percentage",
@@ -433,7 +441,7 @@ stroke_gender_plot <- heartdisease_gender %>%
   geom_bar(stat = "identity") +
   facet_wrap(~ gender) +
   labs(x = "Heart Disease", y = "Percentage", fill = "Stroke", title = "Figure 15. Percentage of Stroke Cases by Gender and Heart Disease") +
-  theme(text = element_text(size = 17.5), plot.title = element_text(hjust = 0.5))
+  theme(text = element_text(size = 16), plot.title = element_text(hjust = 0.5))
 
 # Display the plot
 print(stroke_gender_plot)
@@ -446,7 +454,7 @@ age_bmi <- stroke %>%
   ggplot(aes(x = age, y = bmi, colour = stroke)) +
   geom_point() +
   labs(x = "Age", y = "BMI", color = "Stroke", title = "Figure 16. Stroke Cases by Age and BMI") +
-  theme(text = element_text(size = 17.5),
+  theme(text = element_text(size = 16),
     plot.title = element_text(hjust = 0.5))+
   scale_color_manual(values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.15, 1.0)))
 
@@ -460,7 +468,7 @@ glucose_bmi <- stroke %>%
   ggplot(aes(x = bmi, y = avg_glucose_level, colour = stroke)) +
   geom_point() +
   labs(x = "BMI", y = "Average Glucose Level", color = "Stroke", title = "Figure 17. Stroke Cases by Average Glucose Level and BMI") +
-  theme(text = element_text(size = 17.5),
+  theme(text = element_text(size = 1),
     plot.title = element_text(hjust = 0.5)) +
   scale_color_manual(values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.15, 1.0)))
 
@@ -474,7 +482,7 @@ glucose_hypertension <- stroke %>%
   ggplot(aes(x = avg_glucose_level, y = hypertension, colour = stroke)) +
   geom_jitter() +
   labs(x = "Avg Glucose Level", y = "Hypertension", color = "Stroke", title = "Figure 18. Stroke Cases by Average Glucose Levels and Hypertension") +
-  theme(text = element_text(size = 17.5),
+  theme(text = element_text(size = 16),
     plot.title = element_text(hjust = 0.5)) +
   scale_color_manual(values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.15, 1.0)))
 
@@ -482,7 +490,7 @@ glucose_heartdisease <- stroke %>%
   ggplot(aes(x = avg_glucose_level, y = heart_disease, colour = stroke)) +
   geom_jitter() +
   labs(x = "Avg Glucose Level", y = "Heart Disease", color = "Stroke", title = "Figure 19. Stroke Cases by Average Glucose Levels and Heart Disease") +
-  theme(text = element_text(size = 17.5),
+  theme(text = element_text(size = 16),
     plot.title = element_text(hjust = 0.5)) +
   scale_color_manual(values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.15, 1.0)))
 
@@ -506,7 +514,7 @@ residence_heartdisease <- stroke %>%
   ggplot(aes(x = residence_type, y = heart_disease, colour = stroke)) +
   geom_jitter() +
   labs(x = "Type of Residence", y = "Heart Disease", color = "Stroke", title = "Figure 20. Stroke Cases by Type of Residence and Heart Disease") +
-  theme(text = element_text(size = 17.5),
+  theme(text = element_text(size = 16),
     plot.title = element_text(hjust = 0.5)) +
   scale_color_manual(values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.15, 1.0)))
 
@@ -514,7 +522,7 @@ residence_hypertension <- stroke %>%
   ggplot(aes(x = residence_type, y = hypertension, colour = stroke)) +
   geom_jitter() +
   labs(x = "Type of Residence", y = "Hypertension", color = "Stroke", title = "Figure 21. Stroke Cases by Type of Residence and Hypertension") +
-  theme(text = element_text(size = 17.5),
+  theme(text = element_text(size = 16),
     plot.title = element_text(hjust = 0.5)) +
   scale_color_manual(values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.15, 1.0)))
 
@@ -542,7 +550,7 @@ heartdisease_residence <- heartdisease_residence %>%
         axis.title.y.right = element_text(color = "red", size = 15, angle = -90, vjust = 0.5),
         axis.title.y.left = element_text(color = "blue", size = 15, angle = -90, vjust = 0.5)
       ) +
-      theme(text = element_text(size = 17.5),
+      theme(text = element_text(size = 16),
         plot.title = element_text(hjust = 0))+
       scale_y_continuous(
         name = "Percentage",
@@ -751,13 +759,14 @@ Our current classification model, based on k-nearest neighbors (KNN), has certai
 
 ### Early Intervention
 
-By being able to predict stroke risks, healthcare providers can better identify individuals who are at a higher risk of stroke before the deadly event happens. Early identification has the potential to significantly reduce the occurrence of strokes and further complications by allowing individuals to develop personalized treatment plans with medical professionals to improve their quality of life. 
+By being able to predict stroke risks, healthcare providers can better identify individuals who are at a higher risk of stroke before the deadly event happens. Early identification has the potential to significantly reduce the occurrence of strokes and further complications by allowing individuals to develop personalized treatment plans with medical professionals to improve their quality of life.
 
-### Education and Awareness 
+### Education and Awareness
 
-Our findings can be used to educate future generations of the risk factors that are associated with having a stroke. This can encourage them to live a healthier and more positive lifestyle. As well, this may offer those who have risk factors that are genetic and not lifestyle related, a better understanding of their risks. This will also benefit policy making. For example, if the model identifies smoking as a strong predictor of a stroke, people in public health can prioritize initiatives that better control smoking and be more specfic in their messages regarding the long term effects. 
+Our findings can be used to educate future generations of the risk factors that are associated with having a stroke. This can encourage them to live a healthier and more positive lifestyle. As well, this may offer those who have risk factors that are genetic and not lifestyle related, a better understanding of their risks. This will also benefit policy making. For example, if the model identifies smoking as a strong predictor of a stroke, people in public health can prioritize initiatives that better control smoking and be more specfic in their messages regarding the long term effects.
 
-## What future questions could this lead to? 
+## What future questions could this lead to?
+
 One key area for future exploration is the generalizability of the model in real-word scenarios. This is specifically important in the event of insurance companies or governments deciding to use this technology in order to push their specific agendas. This may lead to unfair outcomes that discriminate or present biases based on the demographic of the original sample it was trained with. As refined and well-trained the model can be, it is crucial to consider the potential exceptions and variations that arise due to the oddities of human biology and environmental factors. Therefore this research can lead to future studies that focus on assessing the models ability across various populations. Other areas that can be explored are specific aspects of the predictors explored in this analysis. For example, one of our predictors is BMI, which is shown to be linked to all-cause mortality. However, BMI does not differentiate between fat mass and muscle mass (Cheung et al, 2015). Considering muscle mass is inversely associated with mortality (Lee & Giovannucci, 2018), researchers may want to see to what degree does fat mass associate with all-cause mortality, and in our specific case, stroke.
 
 # References
