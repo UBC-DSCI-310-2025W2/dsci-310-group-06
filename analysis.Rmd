@@ -41,8 +41,21 @@ library(gridExtra)
 library(GGally)
 library(broom) 
 library(ranger)
+library(scales)
 
 set.seed(894235)
+
+plot_theme <- theme_bw(base_size = 11) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 12),
+    axis.text.x = element_text(size = 9),
+    axis.text.y = element_text(size = 9),
+    axis.title.x = element_text(size = 10),
+    axis.title.y = element_text(size = 10),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 9),
+    strip.text = element_text(size = 9)
+  )
 ```
 
 ## Loading Data
@@ -172,74 +185,113 @@ stroke_training <- stroke_training |> select(-id)
 To begin our analysis, we employed the ggpairs tool, enabling us to gain a holistic view of the dataset and its clinical variables. By generating a matrix where each variable was plotted against one another with whether a patient had a stroke before, we could visually identify variables that had correlations with one another or with stroke. Consequently, this provided us with valuable insights into the variables that needed further investigation below and those that could be excluded due to their lack of significance in our analysis.
 
 ```{r}
-options(repr.plot.width = 25, repr.plot.height = 25) 
+options(repr.plot.width = 12, repr.plot.height = 10)
 
-plot_pairs <- stroke |>   
-  ggpairs(legend=11,
-          columns=2:11,
-          mapping = ggplot2::aes(color = stroke),
-          upper="blank",
-          diag = NULL)+
+stroke_pairs <- stroke |>
+  select(
+    stroke,
+    age,
+    avg_glucose_level,
+    bmi,
+    hypertension,
+    heart_disease
+  )
 
+plot_pairs <- ggpairs(
+  stroke_pairs,
+  columns = 2:6,
+  mapping = aes(color = stroke, alpha = 0.5),
+  upper = list(
+    continuous = wrap("points", size = 0.4)
+  ),
+  lower = list(
+    continuous = wrap("smooth", se = FALSE, alpha = 0.3)
+  ),
+  diag = list(
+    continuous = wrap("densityDiag", alpha = 0.5)
+  )
+) +
+  labs(
+    title = "Figure 1. Pairwise relationships among selected stroke predictors",
+    color = "Stroke"
+  ) +
+  theme_bw(base_size = 10) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 12),
+    legend.position = "bottom",
+    axis.text.x = element_text(size = 8),
+    axis.text.y = element_text(size = 8),
+    strip.text = element_text(size = 9)
+  )
 
-          labs(color="Verification")+
-
-          ggtitle("Figure 1. Matrices of all variable with stroke cases highlighted") +
-
-          theme(plot.title = element_text(hjust = 0, size = 16),
-                axis.text.x = element_text(hjust = .5, color = "black", size=10),
-                axis.text.y = element_text(hjust = .5, color = "black",size=10),
-                legend.position = "bottom")
-    
 suppressMessages(suppressWarnings(print(plot_pairs)))
 ```
 
 ```{r}
-options(repr.plot.width = 10, repr.plot.height = 5) 
+options(repr.plot.width = 8, repr.plot.height = 5)
 
 stroke_gender <- stroke |>
   count(gender, stroke) |>
   group_by(gender) |>
-  mutate(percentage = n / sum(n) * 100) |>
+  mutate(percentage = n / sum(n)) |>
   ggplot(aes(x = gender, y = percentage, fill = stroke)) +
-  geom_bar(stat = "identity", width = .75) +
-  labs(x = "\nGender", y = "Percentage", fill = "Stroke", title = "Figure 2. Percentage of Stroke Cases by Gender") +
-  theme(text = element_text(size = 16),
-    plot.title = element_text(hjust = 0.5))
+  geom_col(width = 0.75) +
+  scale_y_continuous(labels = percent_format()) +
+  labs(
+    x = "Gender",
+    y = "Percentage",
+    fill = "Stroke",
+    title = "Figure 2. Percentage of stroke cases by gender"
+  ) +
+  plot_theme
+
 stroke_gender
 ```
 
 There was no difference between males and females in terms of the number of stroke cases.
 
 ```{r}
-options(repr.plot.width = 15, repr.plot.height = 5) 
+options(repr.plot.width = 10, repr.plot.height = 6)
 
 stroke_age <- stroke |>
-  count(age, stroke) |>
-  group_by(age) |>
-  mutate(percentage = n / sum(n) * 100) |>
-  ggplot(aes(x = age, y = percentage, fill = stroke)) +
-  geom_bar(stat = "identity", width = .75) +
-  labs(x = "\nAge", y = "Percentage", fill = "Stroke", title = "Figure 3. Percentage of Stroke Cases by Age") +
-  theme(text = element_text(size = 16),
-    plot.title = element_text(hjust = 0.5))
-suppressWarnings(print(stroke_age))
+  ggplot(aes(x = age, fill = stroke)) +
+  geom_histogram(
+    position = "fill",
+    binwidth = 5,
+    color = "white"
+  ) +
+  scale_y_continuous(labels = percent_format()) +
+  labs(
+    x = "Age",
+    y = "Proportion",
+    fill = "Stroke",
+    title = "Figure 3. Proportion of stroke cases by age group"
+  ) +
+  plot_theme
+
+stroke_age
 ```
 
 With regards to age, quite significantly less than 12.5% of the patients under 40 years of age had suffered a stroke. Between the ages of 40 and 50, the number of cases rose to just under 12.5%. Between the ages of 50 and 60, we start to see those cases rise to greater than 12.5% but stay under 25%. However, once participants past their early 60s, we see a somewhat substantial increase in the number of cases, up to, and in a few age groups, greater than 25%. The data suggests that those who are above the age of 60 are roughly twice as likely to suffer a stroke than those who are in their mid to late 40s.
 
 ```{r}
-options(repr.plot.width = 10, repr.plot.height = 5) 
+options(repr.plot.width = 8, repr.plot.height = 5)
 
 stroke_hypertension <- stroke |>
   count(hypertension, stroke) |>
   group_by(hypertension) |>
-  mutate(percentage = n / sum(n) * 100) |>
+  mutate(percentage = n / sum(n)) |>
   ggplot(aes(x = hypertension, y = percentage, fill = stroke)) +
-  geom_bar(stat = "identity", width = .75) +
-  labs(x = "\nHypertension", y = "Percentage", fill = "Stroke", title = "Figure 4. Percentage of Stroke Cases by Hypertension") +
-  theme(text = element_text(size = 16),
-    plot.title = element_text(hjust = 0.5))
+  geom_col(width = 0.75) +
+  scale_y_continuous(labels = percent_format()) +
+  labs(
+    x = "Hypertension",
+    y = "Percentage",
+    fill = "Stroke",
+    title = "Figure 4. Percentage of stroke cases by hypertension"
+  ) +
+  plot_theme
+
 stroke_hypertension
 ```
 
