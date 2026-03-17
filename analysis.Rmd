@@ -862,15 +862,33 @@ As seen, the variables `ever_married` and `work_type` do not have any effect on 
 
 ## Building The Model
 
-As a result of our data analysis, we will be moving forwards with these features as predictors of stroke: (Note: the follwowing should be tables) \| Predictors \| Definition \| \|------------------------\|---------------------------------------------------------\| \| Gender \| Whether the person is Male or Female \| \| Age \| Age of patient \| \| Hypertension \| Diagnosed with hypertension or not \| \| Heart Disease \| Diagnosed with heart disease or not \| \| Residence \| Living in rural or urban area \| \| Average glucose levels \| Average glucose level in blood [mg/dL] \| \| BMI \| Body mass index \| \| Smoking status \| Current smoker, former smoker, or never smoked \| \| Stroke \| Has had a stroke before or not \|
+As a result of our data analysis, we will be moving forward with the following features as predictors of stroke.
 
-And these are the features we will not be using in our analysis: \| Unused Predictors \| Definition And Justification For Not Using \| \|-------------------\|--------------------------------------------------------------------------------------\| \| id \| ID of patient; does not contribute to stroke prediction \| \| ever_married \| Ever married or not; this is too broad of a predictor\* \| \| work_type \| Either “Private”, “Self-Employed”, “Government job”, “Never worked”, “Children”; options are too broad\*\* \|
+| Predictor | Definition |
+|-----------|------------|
+| Gender | Whether the person is male or female |
+| Age | Age of patient |
+| Hypertension | Diagnosed with hypertension or not |
+| Heart disease | Diagnosed with heart disease or not |
+| Residence | Living in a rural or urban area |
+| Average glucose level | Average glucose level in blood (mg/dL) |
+| BMI | Body mass index |
+| Smoking status | Current smoker, former smoker, or never smoked |
+| Stroke | Whether the person has had a stroke or not |
 
-\*There were no research findings in relation to whether someone is married or not that is predictive of stroke. Furthermore, the question of whether someone is married or not does not take into account marital satisfaction, which at least for men, “low marital satisfaction increases long term risk of stroke and all-cause mortality” (Lev-ari, Gepner, & Goldbourt, 2021).
+And these are the features we will not be using in our analysis:
 
-\*\*We believe that the options for work_type are not sufficient to accurately predict stroke. A lot of questions that arise with the lack of specificity of these options. For example, for those who are “self-employed”, aspects such as income and whether or not they work another job are key pieces of information that are missing which would be better predictors of stress, as stated in Wang et al (2019), where researchers found that high SES is positively related to the risk of stroke. For work type, we feel that the options “white collar” and “blue collar” jobs are a better way to classify the type of work the patients do, as there were findings suggesting that white collar workers had a 20% higher risk of hypertension, the leading risk factor of stroke, compared to blue collar workers (Liu et al., 2017).
+| Unused Predictor | Definition and Justification for Not Using |
+|------------------|---------------------------------------------|
+| id | ID of patient; does not contribute to stroke prediction |
+| ever_married | Ever married or not; this is too broad of a predictor* |
+| work_type | Either "Private", "Self-Employed", "Government job", "Never worked", "Children"; options are too broad** |
 
-Now that we have finalized the features that will be used in the model, let's define the final `recipe` that we will be using - we scale the predictors as described above:
+\*There were no research findings indicating that marital status alone is predictive of stroke. Additionally, the variable does not account for marital satisfaction, which at least for men has been shown to increase long-term risk of stroke and all-cause mortality when satisfaction is low (Lev-Ari, Gepner, & Goldbourt, 2021).
+
+\**We believe the `work_type` categories are not sufficiently detailed to accurately predict stroke risk. Important socioeconomic factors such as income level or occupational stress are not captured. Research has shown that higher socioeconomic status is positively related to stroke risk (Wang et al., 2019). Additionally, studies suggest that white-collar workers may have a higher risk of hypertension, a major risk factor for stroke, compared to blue-collar workers (Liu et al., 2017).
+
+Now that we have finalized the features that will be used in the model, we define the final `recipe` that will be used. The predictors are scaled as described above.
 
 ```{r}
 stroke_recipe <- recipe(stroke ~ gender+age+hypertension+heart_disease+residence_type+avg_glucose_level+bmi+smoking_status, data = stroke_training) |> 
