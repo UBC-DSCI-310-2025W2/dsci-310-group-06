@@ -59,10 +59,7 @@ plot_theme <- theme_bw(base_size = 11) +
   )
 
   panel_theme <- plot_theme +
-  theme(
-    plot.title = element_text(size = 10, hjust = 0.5),
-    plot.margin = margin(5.5, 15, 5.5, 5.5)
-  )
+  theme(plot.margin = margin(5.5, 15, 5.5, 5.5))
 ```
 
 ## Loading Data
@@ -589,7 +586,7 @@ glucose_bmi
 Our analysis suggests that participants with a BMI of 25 or higher make up a majority of the instances of strokes regardless of average glucose levels. The majority of participants who did not suffer a stroke had average glucose levels of under 150. This tells us that BMI is a stronger predictor of whether someone had a stroke, but maintaining glucose levels at under 150 and BMI under 25 may reduce the risks of stroke.
 
 ```{r}
-options(repr.plot.width = 16, repr.plot.height = 6)
+options(repr.plot.width = 15, repr.plot.height = 6)
 
 glucose_hypertension <- stroke %>%
   ggplot(aes(x = avg_glucose_level, y = hypertension, colour = stroke)) +
@@ -600,7 +597,7 @@ glucose_hypertension <- stroke %>%
     y = "Hypertension",
     color = "Stroke"
   ) +
-  panel_theme +
+  plot_theme +
   theme(legend.position = "none") +
   scale_color_manual(
     values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.2, 1.0))
@@ -615,7 +612,7 @@ glucose_heartdisease <- stroke %>%
     y = "Heart disease",
     color = "Stroke"
   ) +
-  panel_theme +
+  plot_theme +
   scale_color_manual(
     values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.2, 1.0))
   )
@@ -625,8 +622,8 @@ grid.arrange(
   glucose_heartdisease,
   ncol = 2,
   top = textGrob(
-    "Figure 17. Stroke cases by average glucose level with hypertension and heart disease",
-    gp = gpar(fontsize = 14, fontface = "bold")
+    "Figure 17. Stroke cases by glucose level with hypertension and heart disease",
+    gp = gpar(fontsize = 12)
   )
 )
 ```
@@ -640,7 +637,7 @@ Most observations where the participant did not suffer a stroke are associated w
 A similar pattern appears when examining heart disease. Most non-stroke observations occur among participants without heart disease and with lower average glucose levels. Stroke cases appear somewhat more frequently at higher glucose levels, although the separation between stroke and non-stroke observations remains limited. Participants with heart disease exhibit a slightly higher proportion of stroke cases overall, but glucose level alone does not clearly distinguish between stroke and non-stroke outcomes.
 
 ```{r}
-options(repr.plot.width = 16, repr.plot.height = 6)
+options(repr.plot.width = 15, repr.plot.height = 6)
 
 residence_heartdisease <- stroke %>%
   ggplot(aes(x = residence_type, y = heart_disease, colour = stroke)) +
@@ -651,7 +648,7 @@ residence_heartdisease <- stroke %>%
     y = "Heart disease",
     color = "Stroke"
   ) +
-  panel_theme +
+  plot_theme +
   theme(legend.position = "none") +
   scale_color_manual(
     values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.2, 1.0))
@@ -666,7 +663,7 @@ residence_hypertension <- stroke %>%
     y = "Hypertension",
     color = "Stroke"
   ) +
-  panel_theme +
+  plot_theme +
   scale_color_manual(
     values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.2, 1.0))
   )
@@ -677,13 +674,13 @@ grid.arrange(
   ncol = 2,
   top = textGrob(
     "Figure 18. Stroke cases by residence type with heart disease and hypertension",
-    gp = gpar(fontsize = 14, fontface = "bold")
+    gp = gpar(fontsize = 12)
   )
 )
 ```
 
 ```{r}
-options(repr.plot.width = 16, repr.plot.height = 6)
+options(repr.plot.width = 15, repr.plot.height = 6)
 
 heartdisease_residence <- stroke %>%
   count(residence_type, heart_disease, stroke) %>%
@@ -700,7 +697,7 @@ heartdisease_residence <- stroke %>%
     y = "Percentage",
     fill = "Stroke"
   ) +
-  panel_theme +
+  plot_theme +
   theme(legend.position = "none")
 
 hypertension_residence <- stroke %>%
@@ -718,15 +715,15 @@ hypertension_residence <- stroke %>%
     y = "Percentage",
     fill = "Stroke"
   ) +
-  panel_theme
+  plot_theme
 
 grid.arrange(
   heartdisease_residence,
   hypertension_residence,
   ncol = 2,
   top = textGrob(
-    "Figure 19. Percentage of stroke cases by residence type with heart disease and hypertension",
-    gp = gpar(fontsize = 14, fontface = "bold")
+    "Figure 19. Stroke percentages by residence, heart disease, and hypertension",
+    gp = gpar(fontsize = 12)
   )
 )
 ```
@@ -744,7 +741,7 @@ This suggests that hypertension and heart disease are likely a stronger predicto
 #### Exploring Excluded Variables
 
 ```{r}
-options(repr.plot.width = 16, repr.plot.height = 6)
+options(repr.plot.width = 15, repr.plot.height = 6)
 
 ever_married_plot <- stroke %>%
   count(ever_married, stroke) %>%
@@ -759,7 +756,7 @@ ever_married_plot <- stroke %>%
     y = "Percentage",
     fill = "Stroke"
   ) +
-  panel_theme +
+  plot_theme +
   theme(legend.position = "none")
 
 work_type_plot <- stroke %>%
@@ -775,7 +772,7 @@ work_type_plot <- stroke %>%
     y = "Percentage",
     fill = "Stroke"
   ) +
-  panel_theme +
+  plot_theme +
   theme(axis.text.x = element_text(angle = 20, hjust = 1))
 
 grid.arrange(
@@ -783,8 +780,8 @@ grid.arrange(
   work_type_plot,
   ncol = 2,
   top = textGrob(
-    "Figure 20. Percentage of stroke cases by marital status and work type",
-    gp = gpar(fontsize = 14, fontface = "bold")
+    "Figure 20. Stroke percentages by marital status and work type",
+    gp = gpar(fontsize = 12)
   )
 )
 ```
