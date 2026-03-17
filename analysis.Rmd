@@ -111,6 +111,10 @@ stroke <- stroke |> mutate(bmi = as.numeric(as.character(bmi)))
 
 #Dropping NA
 stroke <- stroke |> drop_na()
+
+#Removing the 1 other observation
+stroke <- stroke |>
+  filter(gender != "Other")
 ```
 
 To predict whether a patient will experience a stroke, we will develop a k-nearest neighbors classification model. To do so, we need to split our dataset using part of it to train the model and the other part of it to test the model. The training data will be used to both select the features used in the final model and to tune the number of neighbors used in classification, and the testing data will be used to evaluate the model’s accuracy on unseen data.
