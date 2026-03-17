@@ -571,7 +571,7 @@ glucose_bmi <- stroke %>%
     x = "BMI",
     y = "Average glucose level",
     color = "Stroke",
-    title = "Figure 17. Stroke cases by average glucose level and BMI"
+    title = "Figure 16. Stroke cases by average glucose level and BMI"
   ) +
   plot_theme +
   scale_color_manual(values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.2, 1.0)))
@@ -616,87 +616,81 @@ grid.arrange(glucose_hypertension, glucose_heartdisease, ncol = 2)
 
 **Stroke Cases by Average Glucose Levels and Hypertension**
 
-Most cases where the participant did not suffer a stroke are associated with not suffering hypertension and have an average glucose level of less than 125. Regardless of glucose levels, those who have had hypertension experience a similar percentage of stroke cases, suggesting that once someone has hypertension, glucose levels may not matter for stroke prediction. Those who have not had hypertension and have high average glucose levels (\>175), had the highest percentage of strokes, but not by a significant margin compared to those who have hypertension, regardless of glucose levels.
+Most observations where the participant did not suffer a stroke are associated with not having hypertension and with average glucose levels below approximately 125. Stroke cases appear somewhat more frequently among participants with higher glucose levels, but there remains substantial overlap between stroke and non-stroke observations. Participants with hypertension show a similar proportion of stroke cases across a range of glucose levels, suggesting that once hypertension is present, glucose level alone may not strongly differentiate stroke risk.
 
 **Stroke Cases by Average Glucose Levels and Heart Disease**
 
-Most cases where the participant did not suffer a stroke are associated with not suffering heart disease and have an average glucose level of less than 125. Regardless of glucose levels, those who have had heart disease experience a similar percentage of stroke cases, suggesting that once someone has heart disease, glucose levels may not matter for stroke prediction. However, we do have a lack of stroke cases in those who have an average glucose level around 150, who have suffered heart disease. Those who have not had heart disease and have high average glucose levels (\>175), had the highest percentage of strokes.
+A similar pattern appears when examining heart disease. Most non-stroke observations occur among participants without heart disease and with lower average glucose levels. Stroke cases appear somewhat more frequently at higher glucose levels, although the separation between stroke and non-stroke observations remains limited. Participants with heart disease exhibit a slightly higher proportion of stroke cases overall, but glucose level alone does not clearly distinguish between stroke and non-stroke outcomes.
 
 ```{r}
-options(repr.plot.width = 10, repr.plot.height = 5) 
-
 residence_heartdisease <- stroke %>%
   ggplot(aes(x = residence_type, y = heart_disease, colour = stroke)) +
-  geom_jitter() +
-  labs(x = "Type of Residence", y = "Heart Disease", color = "Stroke", title = "Figure 20. Stroke Cases by Type of Residence and Heart Disease") +
-  theme(text = element_text(size = 16),
-    plot.title = element_text(hjust = 0.5)) +
-  scale_color_manual(values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.15, 1.0)))
+  geom_jitter(width = 0.15, height = 0.15, alpha = 0.5) +
+  labs(
+    x = "Type of residence",
+    y = "Heart disease",
+    color = "Stroke",
+    title = "Figure 18A. Stroke cases by residence type and heart disease"
+  ) +
+  plot_theme +
+  scale_color_manual(
+    values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.2, 1.0))
+  )
 
 residence_hypertension <- stroke %>%
   ggplot(aes(x = residence_type, y = hypertension, colour = stroke)) +
-  geom_jitter() +
-  labs(x = "Type of Residence", y = "Hypertension", color = "Stroke", title = "Figure 21. Stroke Cases by Type of Residence and Hypertension") +
-  theme(text = element_text(size = 16),
-    plot.title = element_text(hjust = 0.5)) +
-  scale_color_manual(values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.15, 1.0)))
+  geom_jitter(width = 0.15, height = 0.15, alpha = 0.5) +
+  labs(
+    x = "Type of residence",
+    y = "Hypertension",
+    color = "Stroke",
+    title = "Figure 18B. Stroke cases by residence type and hypertension"
+  ) +
+  plot_theme +
+  scale_color_manual(
+    values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.2, 1.0))
+  )
 
-options(repr.plot.width = 20, repr.plot.height = 5) 
-
+options(repr.plot.width = 14, repr.plot.height = 5)
 grid.arrange(residence_heartdisease, residence_hypertension, ncol = 2)
 ```
 
 ```{r}
-options(repr.plot.width = 10, repr.plot.height = 7.5) 
-
 heartdisease_residence <- stroke %>%
-  count(residence_type, stroke, heart_disease) %>%
-  group_by(residence_type,heart_disease) %>%
-  mutate(percentage = n / sum(n) * 100) %>%
-  ungroup()
-
-heartdisease_residence <- heartdisease_residence %>%
-    ggplot(aes(x = residence_type, y = percentage, fill = stroke)) +
-      geom_bar(stat = "identity") +
-      labs(x = "Type of Residence", y = "", title = "Figure 22. Percentage of Stroke Cases by Heart Disease and Type of Residence\n") +
-      facet_grid(heart_disease ~ .) +
-      theme_bw() +
-      theme(
-        axis.title.y.right = element_text(color = "red", size = 15, angle = -90, vjust = 0.5),
-        axis.title.y.left = element_text(color = "blue", size = 15, angle = -90, vjust = 0.5)
-      ) +
-      theme(text = element_text(size = 16),
-        plot.title = element_text(hjust = 0))+
-      scale_y_continuous(
-        name = "Percentage",
-        sec.axis = sec_axis(~ ., name = "Heart Disease")
-      )
+  count(residence_type, heart_disease, stroke) %>%
+  group_by(residence_type, heart_disease) %>%
+  mutate(percentage = n / sum(n)) %>%
+  ungroup() %>%
+  ggplot(aes(x = residence_type, y = percentage, fill = stroke)) +
+  geom_col() +
+  facet_wrap(~ heart_disease) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(
+    x = "Type of residence",
+    y = "Percentage",
+    fill = "Stroke",
+    title = "Figure 19A. Percentage of stroke cases by residence type and heart disease"
+  ) +
+  plot_theme
 
 hypertension_residence <- stroke %>%
-  count(residence_type, stroke, hypertension) %>%
-  group_by(residence_type,hypertension) %>%
-  mutate(percentage = n / sum(n) * 100) %>%
-  ungroup()
+  count(residence_type, hypertension, stroke) %>%
+  group_by(residence_type, hypertension) %>%
+  mutate(percentage = n / sum(n)) %>%
+  ungroup() %>%
+  ggplot(aes(x = residence_type, y = percentage, fill = stroke)) +
+  geom_col() +
+  facet_wrap(~ hypertension) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(
+    x = "Type of residence",
+    y = "Percentage",
+    fill = "Stroke",
+    title = "Figure 19B. Percentage of stroke cases by residence type and hypertension"
+  ) +
+  plot_theme
 
-hypertension_residence <- hypertension_residence %>%
-    ggplot(aes(x = residence_type, y = percentage, fill = stroke)) +
-      geom_bar(stat = "identity") +
-      labs(x = "Type of Residence", y = "", title = "Figure 23. Percentage of Stroke Cases by Hypertension and Type of Residence\n") +
-      facet_grid(hypertension ~ .) +
-      theme_bw() +
-      theme(
-        axis.title.y.right = element_text(color = "red", size = 15, angle = -90, vjust = 0.5),
-        axis.title.y.left = element_text(color = "blue", size = 15, angle = -90, vjust = 0.5)
-      ) +
-      theme(text = element_text(size = 17.5),
-        plot.title = element_text(hjust = 0))+
-      scale_y_continuous(
-        name = "Percentage",
-        sec.axis = sec_axis(~ ., name = "Hypertension")
-      )
-
-options(repr.plot.width = 20, repr.plot.height = 7.5) 
-
+options(repr.plot.width = 14, repr.plot.height = 6)
 grid.arrange(heartdisease_residence, hypertension_residence, ncol = 2)
 ```
 
@@ -713,53 +707,40 @@ This suggests that hypertension and heart disease are likely a stronger predicto
 #### Exploring Excluded Variables
 
 ```{r}
-options(repr.plot.height = 10, repr.plot.width = 14)
+options(repr.plot.width = 12, repr.plot.height = 5)
 
-pm_pairs <- stroke %>%
-  select(
-    stroke,
-    gender,
-    age,
-    hypertension,
-    heart_disease,
-    ever_married,
-    work_type,
-    residence_type,
-    avg_glucose_level,
-    bmi,
-    smoking_status
-  ) %>%
-  ggpairs(
-    columns = 2:11,
-    mapping = aes(color = stroke, alpha = 0.5),
-    upper = list(
-      continuous = wrap("blank"),
-      combo = wrap("box_no_facet")
-    ),
-    lower = list(
-      continuous = wrap("points", size = 0.3),
-      combo = wrap("dot_no_facet")
-    ),
-    diag = list(
-      continuous = wrap("densityDiag"),
-      discrete = wrap("barDiag")
-    )
-  ) +
+ever_married_plot <- stroke %>%
+  count(ever_married, stroke) %>%
+  group_by(ever_married) %>%
+  mutate(percentage = n / sum(n)) %>%
+  ggplot(aes(x = ever_married, y = percentage, fill = stroke)) +
+  geom_col(width = 0.75) +
+  scale_y_continuous(labels = scales::percent_format()) +
   labs(
-    title = "Figure 24. Selected variables against stroke status",
-    color = "Stroke"
+    x = "Ever married",
+    y = "Percentage",
+    fill = "Stroke",
+    title = "Figure 20A. Percentage of stroke cases by marital status"
   ) +
-  theme_bw(base_size = 9) +
-  theme(
-    plot.title = element_text(hjust = 0.5, size = 12),
-    legend.position = "bottom",
-    axis.text.x = element_text(size = 7, angle = 30, hjust = 1),
-    axis.text.y = element_text(size = 7),
-    strip.text = element_text(size = 8)
-  )
+  plot_theme
 
-pm_pairs$nrow <- 3
-print(pm_pairs)
+work_type_plot <- stroke %>%
+  count(work_type, stroke) %>%
+  group_by(work_type) %>%
+  mutate(percentage = n / sum(n)) %>%
+  ggplot(aes(x = work_type, y = percentage, fill = stroke)) +
+  geom_col() +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(
+    x = "Work type",
+    y = "Percentage",
+    fill = "Stroke",
+    title = "Figure 20B. Percentage of stroke cases by work type"
+  ) +
+  plot_theme +
+  theme(axis.text.x = element_text(angle = 20, hjust = 1))
+
+grid.arrange(ever_married_plot, work_type_plot, ncol = 2)
 ```
 
 Let's explore and see if `ever_married` and/or `work_type` have a significant influence on the classification. Here we are defining four different `formulas`: the first one excludes both `ever_married` and `work_type`, the second includes `ever_married` but excludes `work_type`, the third one excludes `ever_married`, and our last formula includes both of them.
