@@ -789,6 +789,19 @@ grid.arrange(
 )
 ```
 
+Let's explore and see if `ever_married` and/or `work_type` have a significant influence on the classification. Here we are defining four different `formulas`: the first one excludes both `ever_married` and `work_type`, the second includes `ever_married` but excludes `work_type`, the third one excludes `ever_married`, and our last formula includes both of them.
+
+To determine if these are useful predictors, we will train several `k-nearest neighbor` classification models and compare their accuracies.
+
+```{r}
+names <- colnames(stroke_training |> select(-work_type, -ever_married, -stroke))
+base_formula_string <- paste("stroke", "~", paste(names, collapse="+"))
+formulas = c(base_formula_string,
+             paste(base_formula_string, "+ever_married"),
+             paste(base_formula_string, "+work_type"),
+             paste(base_formula_string, "+ever_married+work_type"))
+```
+
 In the code above, we define the `knn` model classification and set-up 5-fold cross-validation for our models. This involves further splitting up our training data into two pieces - one part for training and one part for evaluation. By repeatedly splitting our original training data into a training and validation split, we can evaluate several different values of k (or the number of neighbors) used in our model. Furthermore, by evaluating the accuracy of the model several times, we can be sure that our results were not simply due to luck or random chance.
 
 ```{r}
