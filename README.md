@@ -32,11 +32,16 @@ The webapp will be hosted at localhost:8787. The username is rstudio and the pas
 Make sure you have the Rstudio (4.4.2) installed. The following libraries are required:
 - tidyverse
 - tidymodels
+- themis
 - repr
 - gridExtra
+- glmnet
 - GGally
 - broom
+- finetune
+- xgboost
 - ranger
+- vip
 
 All R package dependencies are managed using `renv` and are listed in the [`renv.lock`](renv.lock) file. The computational environment is also containerized; see the [`Dockerfile`](Dockerfile) for the exact system requirements and setup.
 

@@ -35,7 +35,6 @@ If you are creating a bug report, please include as many details as possible:
 * A Project board is used to organize the issues.
 * Pull at the beginning of each work session, and push at the end.  
 * Features and fixes are to be contributed in a GitHub flow workflow (where they create branches for each feature or fix, which are reviewed and critiqued by at least one other teammate before the the pull request is accepted).
-* 
 
 #### External Contributors
 * External contributors need first to open issues to explain how they might like to help.
