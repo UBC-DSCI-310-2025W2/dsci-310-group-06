@@ -41,3 +41,4 @@ If you are creating a bug report, please include as many details as possible:
 * If welcomed, the should fork the repo and send their changes via a pull request.
 
 This contribution guidelines were based in [Atom's contribution guidelines](https://github.com/atom/atom/edit/master/CONTRIBUTING.md)
+

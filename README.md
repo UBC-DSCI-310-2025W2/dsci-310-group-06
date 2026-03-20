@@ -13,6 +13,8 @@ This project explored the ability to predict the likelihood of a patient experie
 To formalize these predictions, we trained a K-Nearest Neighbors (KNN) classification model. However, our results revealed a critical limitation: despite achieving a seemingly high overall accuracy of 94.5%, the model suffered from severe class imbalance and predicted "No stroke" for every single patient in the test set. 
 
 **What this means:** Our findings demonstrate that standard classification models trained on heavily imbalanced clinical data will default to the majority class, resulting in dangerous Type II errors (false negatives) where at-risk patients are missed. To build a clinically viable predictive tool, future iterations must utilize data rebalancing techniques (like oversampling the stroke cases) and likely need to incorporate broader, patient-specific variables such as genetic history and detailed lifestyle choices.
+
+
 # How to Run Data Analysis
 Please follow these steps to reproduce the analysis on your local machine:
 ### 1. Run Docker Image
@@ -42,6 +44,11 @@ Make sure you have the Rstudio (4.4.2) installed. The following libraries are re
 - xgboost
 - ranger
 - vip
+- repr
+- gridExtra
+- GGally
+- broom
+- ranger
 
 All R package dependencies are managed using `renv` and are listed in the [`renv.lock`](renv.lock) file. The computational environment is also containerized; see the [`Dockerfile`](Dockerfile) for the exact system requirements and setup.
 

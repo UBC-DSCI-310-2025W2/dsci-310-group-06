@@ -3,9 +3,10 @@ name: Publish Docker Image
 on:
   workflow_dispatch:
   push:
-    paths:
-      - 'Dockerfile'
-      - '.github/workflows/publish_docker_image.yml'
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -24,4 +25,5 @@ jobs:
       run: docker build -t ${{ secrets.DOCKER_USERNAME }}/dsci310group6:latest .
 
     - name: Push Docker image
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: docker push ${{ secrets.DOCKER_USERNAME }}/dsci310group6:latest
