@@ -20,7 +20,8 @@ COPY . /home/rstudio/project
 
 RUN R -e "install.packages('renv', repos='https://cloud.r-project.org')"
 
-ENV CFLAGS="-Wno-error=format-security"
+RUN mkdir -p /root/.R && \
+    printf 'CFLAGS += -Wno-error=format-security\nCXXFLAGS += -Wno-error=format-security\n' > /root/.R/Makevars
 
 RUN R -e "renv::restore()"
 
