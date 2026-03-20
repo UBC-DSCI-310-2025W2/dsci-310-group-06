@@ -34,15 +34,22 @@ By leveraging this dataset, we aim to identify patterns among these clinical fea
 # Methods and Results
 
 ```{r setup, include=FALSE}
+library(MASS)
 library(tidyverse)
 library(tidymodels)
 library(repr)
 library(gridExtra)
 library(GGally)
-library(broom) 
+library(broom)
 library(ranger)
 library(scales)
 library(grid)
+library(themis)
+library(vip)
+library(finetune)
+library(xgboost)
+library(glmnet)
+
 
 set.seed(894235)
 
@@ -119,12 +126,13 @@ stroke <- stroke |>
 
 To predict whether a patient will experience a stroke, we will develop a k-nearest neighbors classification model. To do so, we need to split our dataset using part of it to train the model and the other part of it to test the model. The training data will be used to both select the features used in the final model and to tune the number of neighbors used in classification, and the testing data will be used to evaluate the model’s accuracy on unseen data.
 
-We will select an 80/20 split for training and test data, and will set `strata=stroke` to ensure that both the training and test sets have a proportionate amount of the outcome we are predicting.
+We will select an 80/10/10 split for training, validation, and test data, and will set `strata=stroke` to ensure that all sets have a proportionate amount of the outcome we are predicting.
 
 ```{r}
 #Creating test/train split here
-stroke_split <- initial_split(stroke, prop = 0.8, strata = stroke)
+stroke_split <- initial_validation_split(stroke, prop = c(0.8, 0.1), strata = stroke)
 stroke_training <- training(stroke_split)
+stroke_validation <- validation(stroke_split)
 stroke_testing <- testing(stroke_split)
 ```
 
@@ -193,7 +201,7 @@ stroke_training <- stroke_training |> select(-id)
 To begin our analysis, we employed the ggpairs tool, enabling us to gain a holistic view of the dataset and its clinical variables. By generating a matrix where each variable was plotted against one another with whether a patient had a stroke before, we could visually identify variables that had correlations with one another or with stroke. Consequently, this provided us with valuable insights into the variables that needed further investigation below and those that could be excluded due to their lack of significance in our analysis.
 
 ```{r}
-options(repr.plot.width = 12, repr.plot.height = 10)
+options(repr.plot.width = 12, repr.plot.height = 12)
 
 stroke_pairs <- stroke |>
   select(
@@ -370,7 +378,6 @@ stroke_avg_glucose_level
 ```
 
 There is an association between stroke cases and average glucose level. Patients who had experienced a stroke tend to have higher glucose levels on average than those who had not. While there is overlap between the two groups, the stroke group shows a higher center and a wider spread.
-
 
 ```{r}
 options(repr.plot.width = 8, repr.plot.height = 6)
@@ -742,217 +749,485 @@ Regardless of one’s residence type, cases of strokes are roughly equal when on
 
 This suggests that hypertension and heart disease are likely a stronger predictor of stroke than the type of residence one resides in.
 
-#### Exploring Excluded Variables
-
-```{r}
-options(repr.plot.width = 15, repr.plot.height = 6)
-
-ever_married_plot <- stroke %>%
-  count(ever_married, stroke) %>%
-  group_by(ever_married) %>%
-  mutate(percentage = n / sum(n)) %>%
-  ggplot(aes(x = ever_married, y = percentage, fill = stroke)) +
-  geom_col(width = 0.75) +
-  scale_y_continuous(labels = scales::percent_format()) +
-  labs(
-    title = "A. Marital status",
-    x = "Ever married",
-    y = "Percentage",
-    fill = "Stroke"
-  ) +
-  plot_theme +
-  theme(legend.position = "none")
-
-work_type_plot <- stroke %>%
-  count(work_type, stroke) %>%
-  group_by(work_type) %>%
-  mutate(percentage = n / sum(n)) %>%
-  ggplot(aes(x = work_type, y = percentage, fill = stroke)) +
-  geom_col() +
-  scale_y_continuous(labels = scales::percent_format()) +
-  labs(
-    title = "B. Work type",
-    x = "Work type",
-    y = "Percentage",
-    fill = "Stroke"
-  ) +
-  plot_theme +
-  theme(axis.text.x = element_text(angle = 20, hjust = 1))
-
-grid.arrange(
-  ever_married_plot,
-  work_type_plot,
-  ncol = 2,
-  top = textGrob(
-    "Figure 20. Stroke percentages by marital status and work type",
-    gp = gpar(fontsize = 12)
-  )
-)
-```
-
-Let's explore and see if `ever_married` and/or `work_type` have a significant influence on the classification. Here we are defining four different `formulas`: the first one excludes both `ever_married` and `work_type`, the second includes `ever_married` but excludes `work_type`, the third one excludes `ever_married`, and our last formula includes both of them.
-
-To determine if these are useful predictors, we will train several `k-nearest neighbor` classification models and compare their accuracies.
-
-```{r}
-names <- colnames(stroke_training |> select(-work_type, -ever_married, -stroke))
-base_formula_string <- paste("stroke", "~", paste(names, collapse="+"))
-formulas = c(base_formula_string,
-             paste(base_formula_string, "+ever_married"),
-             paste(base_formula_string, "+work_type"),
-             paste(base_formula_string, "+ever_married+work_type"))
-```
-
-In the code above, we define the `knn` model classification and set-up 5-fold cross-validation for our models. This involves further splitting up our training data into two pieces - one part for training and one part for evaluation. By repeatedly splitting our original training data into a training and validation split, we can evaluate several different values of k (or the number of neighbors) used in our model. Furthermore, by evaluating the accuracy of the model several times, we can be sure that our results were not simply due to luck or random chance.
-
-```{r}
-stroke_classifier <- nearest_neighbor(weight_func = "rectangular", neighbors = tune()) |> 
-  set_engine("kknn") |> 
-  set_mode("classification")
-```
-
-```{r}
-stroke_vfold <- vfold_cv(stroke_training, v = 5, strata = stroke)
-```
-
-We set-up some scaffolding for the various models to be trained:
-
-```{r}
-#Create table of accuracies
-accs <- data.frame(matrix(ncol = 3, nrow = 0))
-x <- c("neighbors", "mean", "model_string")
-colnames(accs) <- x
-accs <- accs |> 
-  mutate(across(neighbors, as.integer)) |> 
-  mutate(across(mean, as.double)) |> 
-  mutate(across(model_string, as.character))
-```
-
-For each of our four formulas, we define a `recipe` - this recipe describes what we are trying to predict (stroke), what are our prediction variables (defined in each respective formula), what is our dataset (the training set is used for this task) and how we will scale the data. Scaling is an important step in the k-nn algorithm as it computes similarity using a distance metric - having features on a similar scale allows the algorithm to make fair comparisons.
-
-Following this, we define a `workflow` - this involves a processing called *tuning*, where we define a grid of possible values for `k` (the number of neighbors used to make a classification). We repeatedly develop a classification model with a range of `k` (from `k=1` to `k=20`) and select the value of `k` that results in the highest accuracy by using a combination of `collect_metrics` (which outputs the metrics for each `k` trained) and we `filter` on the value that gives us the highest accuracy.
-
-```{r}
-for (formula in formulas) {
-    # create a recipe from the model string
-    stroke_recipe <- recipe(as.formula(formula), data = stroke_training) |> 
-        step_scale(all_numeric_predictors()) |> 
-        step_center(all_numeric_predictors()) |>
-        step_dummy(all_nominal_predictors())
-    
-    # tune the KNN classifier with these predictors, 
-    # and collect the accuracy for the best K
-    k_vals <- tibble(neighbors = seq(from = 1, to = 20, by = 1))
-    acc <- workflow() |>
-      add_recipe(stroke_recipe) |>
-      add_model(stroke_classifier) |>
-      tune_grid(resamples = stroke_vfold, grid = k_vals) |>
-      collect_metrics() |>
-      filter(.metric == "accuracy") |>
-      arrange(desc(mean)) |> head(1) |> # the row with the highest accuracy
-      select(neighbors, mean) |> 
-      mutate(model_string = formula)
-    accs <- add_row(accs, acc)
-}
-```
-
-The end result is a data frame with four rows, each row has three columns: `neighbors` which is the \# of neighbors that resulted in the highest accuracy for the given formula, `mean` the mean accuracy for the model and `model_string` which describes which predictors were used in creating the model.
-
-```{r}
-accs
-```
-
-As seen, the variables `ever_married` and `work_type` do not have any effect on the accuracy of the model. This is corroborated by the weak correlation obtained in the preliminary correlation chart. Hence, these variables will be excluded to improve model efficiency.
-
 ## Building The Model
+
+### Finalized Features
 
 As a result of our data analysis, we will be moving forward with the following features as predictors of stroke.
 
-| Predictor | Definition |
-|-----------|------------|
-| Gender | Whether the person is male or female |
-| Age | Age of patient |
-| Hypertension | Diagnosed with hypertension or not |
-| Heart disease | Diagnosed with heart disease or not |
-| Residence | Living in a rural or urban area |
-| Average glucose level | Average glucose level in blood (mg/dL) |
-| BMI | Body mass index |
-| Smoking status | Current smoker, former smoker, or never smoked |
-| Stroke | Whether the person has had a stroke or not |
+| Predictor             | Definition                                     |
+|-----------------------|------------------------------------------------|
+| Gender                | Whether the person is male or female           |
+| Age                   | Age of patient                                 |
+| Hypertension          | Diagnosed with hypertension or not             |
+| Heart disease         | Diagnosed with heart disease or not            |
+| Residence             | Living in a rural or urban area                |
+| Average glucose level | Average glucose level in blood (mg/dL)         |
+| BMI                   | Body mass index                                |
+| Smoking status        | Current smoker, former smoker, or never smoked |
+| Stroke                | Whether the person has had a stroke or not     |
 
 And these are the features we will not be using in our analysis:
 
-| Unused Predictor | Definition and Justification for Not Using |
-|------------------|---------------------------------------------|
-| id | ID of patient; does not contribute to stroke prediction |
-| ever_married | Ever married or not; this is too broad of a predictor* |
-| work_type | Either "Private", "Self-Employed", "Government job", "Never worked", "Children"; options are too broad** |
+| Unused Predictor | Definition | Exclusion Justification |
+|---------------------|--------------------|-------------------------------|
+| id | ID of patient | Does not contribute to stroke prediction |
+| ever_married | Ever married or not | This is too broad of a predictor\* |
+| work_type | Either "Private", "Self-Employed", "Government job", "Never worked", "Children" | Options are too broad\*\* |
 
 \*There were no research findings indicating that marital status alone is predictive of stroke. Additionally, the variable does not account for marital satisfaction, which at least for men has been shown to increase long-term risk of stroke and all-cause mortality when satisfaction is low (Lev-Ari, Gepner, & Goldbourt, 2021).
 
-\**We believe the `work_type` categories are not sufficiently detailed to accurately predict stroke risk. Important socioeconomic factors such as income level or occupational stress are not captured. Research has shown that higher socioeconomic status is positively related to stroke risk (Wang et al., 2019). Additionally, studies suggest that white-collar workers may have a higher risk of hypertension, a major risk factor for stroke, compared to blue-collar workers (Liu et al., 2017).
+\*\*We believe the `work_type` categories are not sufficiently detailed to accurately predict stroke risk. Important socioeconomic factors such as income level or occupational stress are not captured. Research has shown that higher socioeconomic status is positively related to stroke risk (Wang et al., 2019). Additionally, studies suggest that white-collar workers may have a higher risk of hypertension, a major risk factor for stroke, compared to blue-collar workers (Liu et al., 2017).
+
+### kNN Classification
 
 Now that we have finalized the features that will be used in the model, we define the final `recipe` that will be used. The predictors are scaled as described above.
 
 ```{r}
 stroke_recipe <- recipe(stroke ~ gender+age+hypertension+heart_disease+residence_type+avg_glucose_level+bmi+smoking_status, data = stroke_training) |> 
+            step_YeoJohnson(all_numeric_predictors()) |>
             step_scale(all_numeric_predictors()) |> 
             step_center(all_numeric_predictors()) |>
-            step_dummy(all_nominal_predictors())
+            step_dummy(all_nominal_predictors()) |>
+            step_smote(stroke) 
 ```
 
-During our analysis above, we ran a 5-fold cross-validation across a grid of values for `k` (\# of neighbors) from 1 to 20. It was found that `k=19` results in the highest accuracy on our training dataset. We will use this value to develop our final model with `neighbors = 19`.
+#### Hyperparameter Tuning
+
+We will tune the neighbors parameter via 5-fold cross-validation with a coarse sweep from 1 to 50 neighbors, incrementing by 5 neighbors, followed by a finer sweep. We will use Youden's J statistic to evaluate model performance as accuracy may improperly "mask" a poorly predictive model due to the class imbalance present. Youden's J statistic accounts both for sensitivity and specificity.
 
 ```{r}
-stroke_model_final <- nearest_neighbor(weight_func = "rectangular", neighbors = 19) |> set_engine("kknn") |> set_mode("classification")
+stroke_knn_classifier <- nearest_neighbor(weight_func = "rectangular", 
+                                          neighbors = tune()) |> 
+  set_engine("kknn") |> 
+  set_mode("classification")
+
+stroke_knn_vfold <- vfold_cv(stroke_training, v = 5, strata = stroke)
+coarse_knn_k_vals <- tibble(neighbors = seq(from = 1, to = 200, by = 10))
+
+coarse_knn_cv_sweep_results <- workflow() |>
+  add_recipe(stroke_recipe) |>
+  add_model(stroke_knn_classifier) |>
+  tune_grid(resamples = stroke_knn_vfold, 
+            grid      = coarse_knn_k_vals,
+            metrics   = metric_set(j_index, sensitivity, accuracy)) |>
+  collect_metrics()
+coarse_knn_cv_sweep_results |> 
+      filter(.metric == "j_index") |>
+      arrange(desc(mean))
+```
+
+```{r}
+coarse_n_neighbors_plot <- coarse_knn_cv_sweep_results |>
+  filter(.metric == "j_index") |>
+  ggplot(aes(x=neighbors, y=mean)) +
+  geom_line() +
+  labs(title = "Figure 20. J-Index vs # of Neighbours for kNN Model",
+       x     = "# of Neighbours",
+       y     = "Mean J-Index")
+
+coarse_n_neighbors_plot
+```
+
+From Figure 20, we can see that model performance increases steadily as the number of neighbors increases, reaching a plateau around 150. We will conduct a finer search around the 150-180 neighbour range to land on a final value.
+
+```{r}
+fine_knn_k_vals <- tibble(neighbors = seq(from = 150, to = 180, by = 1))
+
+fine_knn_cv_sweep_results <- workflow() |>
+  add_recipe(stroke_recipe) |>
+  add_model(stroke_knn_classifier) |>
+  tune_grid(resamples = stroke_knn_vfold, 
+            grid      = fine_knn_k_vals,
+            metrics   = metric_set(j_index, sensitivity, accuracy)) |>
+  collect_metrics()
+fine_knn_cv_sweep_results |> 
+      filter(.metric == "j_index") |>
+      arrange(desc(mean))
+```
+
+It was found that `k=159` results in the highest score on our training dataset. We will use this value to develop our final kNN model with `neighbors=159`.
+
+#### Evaluation on Validation Set
+
+```{r}
+knn_model_final <- nearest_neighbor(weight_func = "rectangular", neighbors = 159) |>   
+  set_engine("kknn") |>
+  set_mode("classification")
 ```
 
 We train our final model and fit it against our training dataset.
 
 ```{r}
-stroke_fit <- workflow() |> 
-  add_model(stroke_model_final) |> 
+knn_stroke_fit <- workflow() |> 
+  add_model(knn_model_final) |> 
   add_recipe(stroke_recipe) |> 
   fit(data = stroke_training)
 ```
 
-We used the model trained with the optimal number of neighbors, and then use it to predict new values using our test set:
+We used the model trained with the optimal number of neighbors, and then use it to predict new values using our validation set and calculate the J-index obtained
 
 ```{r}
-stroke_test_predictions <- predict(stroke_fit, stroke_testing) |> 
-  bind_cols(stroke_testing)
+knn_stroke_test_predictions <- predict(knn_stroke_fit, stroke_validation) |> 
+  bind_cols(stroke_validation)
 ```
 
-Lastly, we can calculate the accuracy of our predictions on the test set. This is a representation of how our model generalizes to new, unseen predictions.
-
 ```{r}
-model_metrics <- stroke_test_predictions |> metrics(truth = stroke, estimate = .pred_class)
-model_metrics
+knn_model_metrics <- knn_stroke_test_predictions |> 
+  metric_set(accuracy, kap, j_index)(truth = stroke, estimate = .pred_class)
+knn_model_metrics
 ```
 
-As seen from the `accuracy` metric above, the model is able to predict if a person has experienced a stroke with an accuracy of `94.5%`. Whilst this is a promising result in attempting to create a model which will predict whether a person will have a stroke, this is no indication that the model generated will be able to **predict** a stroke with a sufficient accuracy.
-
 ```{r}
-confusion <- stroke_test_predictions |>
+knn_confusion <- knn_stroke_test_predictions |>
              conf_mat(truth = stroke, estimate = .pred_class)
-confusion
+knn_confusion
 ```
 
-However, upon inspection of the confusion matrix for the model, we discover a flaw. The model seems to be classifying every single case as no stroke. The model may be rewarded when doing so as the percentage of people with a stroke is so low, the penalization is also low. In order to remedy this, we must rectify the model to be more heavily penalized for these Type II errors. Type II errors are the most dangerous as in our desired application, it would lead to the model stating that the participant will not have a stroke. In actualality, they will and that may lead to a sense of false confidence which decreases their alertness for signs/precursors of stroke. The issue with k-nearest neighbors and heavily imbalanced datasets has been well documented. Efforts were attempted in using a different evaluation metric, such as the F2 score, but similar problems were encountered, most likely due to the heavy imbalance of the dataset.
+We get a final score of 0.4001, which is not too good as the metric is on a scale from [0,1]. From the confusion matrix, we can see that the model is predicting a lot of false positives.
+
+### Logistic Regression
+
+Logistic regression is another model type that can be used for classification tasks. It models the log-odds of the outcome as a linear combination of predictors. We will additionally use backward stepwise selection to prune non-informative terms, and tune an elastic-net penalty to regularize the retained coefficients.
+
+#### Backward Selection
+
+We first define a recipe without SMOTE to maintain the class distribution in the original dataset during backward selection:
+
+```{r}
+logr_recipe_for_selection <- recipe(
+    stroke ~ gender + age + hypertension + heart_disease +
+             residence_type + avg_glucose_level + bmi + smoking_status,
+    data = stroke_training
+  ) |>
+  step_YeoJohnson(all_numeric_predictors()) |>
+  step_scale(all_numeric_predictors()) |>
+  step_center(all_numeric_predictors()) |>
+  step_dummy(all_nominal_predictors())
+
+baked_train <- prep(logr_recipe_for_selection) |> bake(new_data = NULL)
+
+full_glm <- glm(stroke ~ ., data = baked_train, family = binomial)
+backward_glm <- MASS::stepAIC(full_glm, direction = "backward", trace = FALSE)
+summary(backward_glm)
+```
+
+```{r}
+survived_terms <- attr(terms(backward_glm), "term.labels")
+cat(survived_terms, sep = "\n")
+```
+
+The backward selection procedure removes predictors that do not improve the AIC, and resulted in only the terms left above. We will use these selected terms in the final model.
+
+#### Hyperparameter Tuning
+
+We add SMOTE back in for the tuning phase. The elastic-net penalty and regularisation strength are tuned at the same time over a 10 by 10 grid using 5-fold cross-validation evaluated by J-index as in the kNN model:
+
+```{r}
+logr_recipe_final <- recipe(
+    stroke ~ age + avg_glucose_level + hypertension + heart_disease +
+             smoking_status,
+    data = stroke_training
+  ) |>
+  step_YeoJohnson(all_numeric_predictors()) |>
+  step_scale(all_numeric_predictors()) |>
+  step_center(all_numeric_predictors()) |>
+  step_dummy(all_nominal_predictors()) |>
+  step_smote(stroke)
+
+logr_spec <- logistic_reg(penalty = tune(), mixture = tune()) |>
+  set_engine("glmnet") |>
+  set_mode("classification")
+
+logr_grid <- grid_regular(
+  penalty(range = c(-5, 0)),
+  mixture(range = c(0, 1)),
+  levels = 10
+)
+
+logr_vfold <- vfold_cv(stroke_training, v = 5, strata = stroke)
+
+logr_cv_results <- workflow() |>
+  add_recipe(logr_recipe_final) |>
+  add_model(logr_spec) |>
+  tune_grid(
+    resamples = logr_vfold,
+    grid      = logr_grid,
+    metrics   = metric_set(j_index, sensitivity, accuracy)
+  ) |>
+  collect_metrics()
+
+best_logr_params <- logr_cv_results |>
+  filter(.metric == "j_index") |>
+  arrange(desc(mean)) |>
+  slice(1)
+best_logr_params
+```
+
+The best performing model had `penalty = 0.2782559` and `mixture = 0`, which corresponds to a pure ridge regression model. We will use these hyperparameters to create the final model to be tested on the validation set.
+
+#### Evaluation on Validation Set
+
+```{r}
+logr_final_spec <- logistic_reg(
+    penalty = best_logr_params$penalty,
+    mixture = best_logr_params$mixture
+  ) |>
+  set_engine("glmnet") |>
+  set_mode("classification")
+
+logr_fit <- workflow() |>
+  add_recipe(logr_recipe_final) |>
+  add_model(logr_final_spec) |>
+  fit(data = stroke_training)
+```
+
+```{r}
+logr_val_predictions <- predict(logr_fit, stroke_validation) |>
+  bind_cols(stroke_validation)
+
+logr_val_metrics <- logr_val_predictions |>
+  metric_set(j_index, sensitivity, accuracy)(truth = stroke, estimate = .pred_class)
+logr_val_metrics
+```
+
+```{r}
+logr_confusion <- logr_val_predictions |>
+  conf_mat(truth = stroke, estimate = .pred_class)
+logr_confusion
+```
+
+The logistic model resulted in a substantial improvement over the kNN model, achieving a J-index of 0.6091. The number of false positives is also reduced compared to the kNN model.
+
+### XGBoost
+
+XGBoost is a gradient-boosted tree ensemble that naturally captures non-linear relationships and feature interactions. We will first fit a preliminary model to rank feature importance, using the information to prune uninformative predictors, then tune the model's hyperparameters using Bayesian optimisation.
+
+#### Feature Importance
+
+```{r}
+xgb_recipe_full <- recipe(
+    stroke ~ gender + age + hypertension + heart_disease +
+             residence_type + avg_glucose_level + bmi + smoking_status,
+    data = stroke_training
+  ) |>
+  step_YeoJohnson(all_numeric_predictors()) |>
+  step_scale(all_numeric_predictors()) |>
+  step_center(all_numeric_predictors()) |>
+  step_dummy(all_nominal_predictors()) |>
+  step_smote(stroke)
+
+xgb_spec_initial <- boost_tree(trees = 200) |>
+  set_engine("xgboost") |>
+  set_mode("classification")
+
+xgb_fit_initial <- workflow() |>
+  add_recipe(xgb_recipe_full) |>
+  add_model(xgb_spec_initial) |>
+  fit(data = stroke_training)
+```
+
+```{r}
+vip_plot <- xgb_fit_initial |>
+  extract_fit_parsnip() |>
+  vip(num_features = 15) +
+  labs(title = "Figure 21. XGBoost Feature Importance") +
+  plot_theme
+vip_plot
+```
+
+Features with importance that are near zero mainly contribute noise without improving prediction. However, due to the dummy step on catagorical predictors, we can see their their importance is split across its levels and thus the importance of the predictor must be interpreted as the sum of its importances across its derived dummy variables.
+
+Based on the importance ranking above, `age`, `avg_glucose_level`, `bmi`, `hypertension`, `heart_disease`, and `smoking_status` are informative while we can and drop categorical predictors that were consistently near the bottom such as `gender` .
+
+#### Bayesian Hyperparameter Tuning
+
+We tune six hyperparameters simultaneously using Bayesian optimisation (`tune_bayes`), which is more efficient than an exhaustive grid search for high-dimensional parameter spaces. We run 10 initial random evaluations followed by up to 30 Bayesian iterations, stopping early if 10 consecutive iterations fail to improve J-index:
+
+```{r}
+xgb_recipe_selected <- recipe(
+    stroke ~ age + avg_glucose_level + bmi +
+             hypertension + heart_disease + smoking_status + residence_type,
+    data = stroke_training
+  ) |>
+  step_YeoJohnson(all_numeric_predictors()) |>
+  step_scale(all_numeric_predictors()) |>
+  step_center(all_numeric_predictors()) |>
+  step_dummy(all_nominal_predictors()) |>
+  step_smote(stroke)
+
+xgb_spec_tune <- boost_tree(
+  trees          = tune(),
+  tree_depth     = tune(),
+  learn_rate     = tune(),
+  min_n          = tune(),
+  loss_reduction = tune(),
+  sample_size    = tune()
+) |>
+  set_engine("xgboost") |>
+  set_mode("classification")
+
+xgb_vfold <- vfold_cv(stroke_training, v = 5, strata = stroke)
+
+xgb_params <- workflow() |>
+  add_recipe(xgb_recipe_selected) |>
+  add_model(xgb_spec_tune) |>
+  extract_parameter_set_dials() |>
+  update(
+    learn_rate = learn_rate(range = c(-3, -1)),
+    trees      = trees(range = c(100, 1000))
+  )
+
+xgb_bayes_results <- workflow() |>
+  add_recipe(xgb_recipe_selected) |>
+  add_model(xgb_spec_tune) |>
+  tune_bayes(
+    resamples  = xgb_vfold,
+    param_info = xgb_params,
+    iter       = 30,
+    initial    = 10,
+    metrics    = metric_set(j_index, sensitivity, accuracy),
+    control    = control_bayes(no_improve = 10, verbose = FALSE)
+  )
+
+best_xgb_params <- xgb_bayes_results |>
+  collect_metrics() |>
+  filter(.metric == "j_index") |>
+  arrange(desc(mean)) |>
+  slice(1)
+best_xgb_params
+```
+
+The best performing model was obtained with the hyperparameters listed above and will be used to train the final model.
+
+#### Evaluation on Validation Set
+
+```{r}
+xgb_final_workflow <- workflow() |>
+  add_recipe(xgb_recipe_selected) |>
+  add_model(xgb_spec_tune) |>
+  finalize_workflow(best_xgb_params)
+
+xgb_fit <- xgb_final_workflow |>
+  fit(data = stroke_training)
+```
+
+```{r}
+xgb_val_predictions <- predict(xgb_fit, stroke_validation) |>
+  bind_cols(stroke_validation)
+
+xgb_val_metrics <- xgb_val_predictions |>
+  metric_set(j_index, sensitivity, accuracy)(truth = stroke, estimate = .pred_class)
+xgb_val_metrics
+```
+
+```{r}
+xgb_confusion <- xgb_val_predictions |>
+  conf_mat(truth = stroke, estimate = .pred_class)
+xgb_confusion
+```
+
+## Model Selection
+
+We compare the three models on the validation set using J-index, sensitivity, and accuracy.
+
+```{r}
+all_val_metrics <- bind_rows(
+  knn_stroke_test_predictions |>
+    metric_set(j_index, sensitivity, accuracy)(truth = stroke, estimate = .pred_class) |>
+    mutate(model = "kNN"),
+  logr_val_predictions |>
+    metric_set(j_index, sensitivity, accuracy)(truth = stroke, estimate = .pred_class) |>
+    mutate(model = "Logistic Regression"),
+  xgb_val_predictions |>
+    metric_set(j_index, sensitivity, accuracy)(truth = stroke, estimate = .pred_class) |>
+    mutate(model = "XGBoost")
+)
+```
+
+```{r}
+metrics_plot <- all_val_metrics |>
+  mutate(
+    .metric = recode(.metric,
+      "j_index"     = "J-Index",
+      "sensitivity" = "Sensitivity",
+      "accuracy"    = "Accuracy"
+    ),
+    model = factor(model, levels = c("kNN", "Logistic Regression", "XGBoost"))
+  ) |>
+  ggplot(aes(x = .metric, y = .estimate, fill = model)) +
+  geom_col(position = position_dodge(width = 0.7), width = 0.6) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(
+    title = "Figure 22. Validation Set Metrics by Model",
+    x     = "Metric",
+    y     = "Estimate",
+    fill  = "Model"
+  ) +
+  plot_theme
+metrics_plot
+```
+
+```{r}
+knn_cm_plot  <- autoplot(knn_confusion,  type = "heatmap") +
+  labs(title = "kNN") +
+  plot_theme +
+  theme(legend.position = "none")
+
+logr_cm_plot <- autoplot(logr_confusion, type = "heatmap") +
+  labs(title = "Logistic Regression") +
+  plot_theme +
+  theme(legend.position = "none")
+
+xgb_cm_plot  <- autoplot(xgb_confusion,  type = "heatmap") +
+  labs(title = "XGBoost") +
+  plot_theme +
+  theme(legend.position = "none")
+
+confusion_grid <- grid.arrange(
+  knn_cm_plot, logr_cm_plot, xgb_cm_plot,
+  ncol   = 3,
+  top    = grid::textGrob(
+    "Figure 23. Confusion Matrices on Validation Set",
+    gp = grid::gpar(fontsize = 11)
+  )
+)
+```
+
+Looking at the three models, logistic regression performed the best in terms of J-Index, at 0.61534. Inspecting the confusion matrices, we can see that it performed better than the kNN model at avoiding false positive and false negatives, but only outperformed the XGBoost model in avoiding false negatives. As the J-index metric weights both sensitivity and specificity equally, we will select the logistic regression model as our final candidate.
+
+## Final Evaluation
+
+```{r}
+logr_test_predictions <- predict(logr_fit, stroke_testing) |>
+  bind_cols(stroke_testing)
+
+logr_test_metrics <- logr_test_predictions |>
+  metric_set(j_index, sensitivity, specificity, accuracy)(truth = stroke, estimate = .pred_class)
+logr_test_metrics
+```
+
+```{r}
+logr_test_confusion <- logr_test_predictions |>
+  conf_mat(truth = stroke, estimate = .pred_class)
+logr_test_confusion
+```
+
+The performance of the logistic regression model on the testing set yielded a J-Index of 0.5556. This represents a drop as compared to the validation set, which mday indicate the model is having difficulty generalizing to unseen data.
 
 # Discussion
 
 The research project aimed to accurately predict the occurrence of stroke in patients based on a set of clinical features. The researchers utilized the Stroke Prediction Dataset, which included information on 12 variables, such as age, gender, hypertension, heart disease, average glucose levels, BMI, smoking status, and more. By analyzing this dataset, the researchers identified patterns between these clinical features and the occurrence of stroke.
 
-Through the primary analysis, age and hypertension emerged as the strongest predictors of stroke. Age was determined to be the primary determinant of stroke risk, with the likelihood of experiencing a stroke doubling every decade after the age of 55. Hypertension, or high blood pressure, was also identified as a leading risk factor for stroke. Other factors, such as heart disease, BMI, average glucose levels, smoking status, and type of work, showed varying degrees of association with stroke occurrence.
+Through backwards selection, age (p \< 2e-16), average glucose level (0.0047), and the presence of pre-existing heart disease emerged as the strongest predictors of stroke for our logistic regression model. Age was significant in determining stroke risk, with the likelihood of experiencing a stroke doubling every decade after the age of 55. Heart disease and average glucose levels were also identified as significant (p = 4.7e-3 and p = 2e-2 respectively) risk factors for stroke. Other factors, such as heart disease, BMI, smoking status, and type of work, showed varying degrees of association with stroke occurrence.
 
 Visualizations and exploratory data analysis played a crucial role in identifying correlations between the clinical variables and stroke. For instance, it was observed that individuals above the age of 60 were approximately twice as likely to suffer a stroke compared to those in their mid to late 40s. Similarly, participants with hypertension or heart disease were at an increased risk of stroke. BMI and average glucose levels were found to have a positive association with stroke cases.
 
-However, the research did not yield the expected results. Surprisingly, the models used, including the one discussed, classified everything as "No" stroke. This discrepancy could be attributed to the lower correlations of the variables with stroke compared to what was originally anticipated based on previous literature. These findings suggest that to develop a more accurate model, additional factors beyond those present in our dataset, such as genetic factors/family history and lifestyle choices, need to be considered.
+However, the research did not yield the expected results. The occurance of false positives are quite high, and the model also predicted some false negatives. In the context of stroke risk, false positives are less serious than false negatives, while the former would still result in unncessary usage of medical resources and costs, the latter could potentially have serious or lethal consequences if the model were to be deployed. These findings suggest that to develop a more accurate model, additional factors beyond those present in our dataset, such as genetic factors/family history and lifestyle choices, need to be considered. Additionally, metrics that penalize false positives more severely such as F2 could be used.
 
 ## Potential Limitations
 
-Our current classification model, based on k-nearest neighbors (KNN), has certain limitations that should be considered. Instead of predicting stroke occurrence, it focuses on determining whether a person has had a stroke based on the predictors utilized in our analysis. One limitation is that the dataset used represents a snapshot of stroke cases at a specific point in time. This can potentially limit its generalizability to future cases. Changes in stroke occurrence after the data collection period could affect the predictive power of the model. Additionally, our model does not account for potential risk factors that were not included in the dataset but may contribute to stroke occurrence. Their absence in the analysis may affect the accuracy of our predictions. To address these limitations, it may be beneficial to incorporate data from before the stroke event and establish a timeline to track the changes in clinical features over time. This approach could enhance our understanding of stroke occurrence and improve the accuracy of future classification models.
+Our current classification model, based on a regularized logistic regression model, has certain limitations that should be considered. Instead of predicting stroke occurrence, it focuses on determining whether a person has had a stroke based on the predictors utilized in our analysis. One limitation is that the dataset used represents a snapshot of stroke cases at a specific point in time. This can potentially limit its generalizability to future cases. Changes in stroke occurrence after the data collection period could affect the predictive power of the model. Additionally, our model does not account for potential risk factors that were not included in the dataset but may contribute to stroke occurrence. Their absence in the analysis may affect the accuracy of our predictions. To address these limitations, it may be beneficial to incorporate data from before the stroke event and establish a timeline to track the changes in clinical features over time. This approach could enhance our understanding of stroke occurrence and improve the accuracy of future classification models.
 
 ## Impacts
 
