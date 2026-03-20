@@ -5,7 +5,6 @@ RUN apt-get update && \
     apt-get clean
 
 WORKDIR /home/rstudio/project
-
 COPY . /home/rstudio/project
 
 RUN R -e "install.packages('renv', repos='https://cloud.r-project.org')"
