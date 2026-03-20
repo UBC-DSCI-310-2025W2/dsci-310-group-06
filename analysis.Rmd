@@ -201,7 +201,7 @@ stroke_training <- stroke_training |> select(-id)
 To begin our analysis, we employed the ggpairs tool, enabling us to gain a holistic view of the dataset and its clinical variables. By generating a matrix where each variable was plotted against one another with whether a patient had a stroke before, we could visually identify variables that had correlations with one another or with stroke. Consequently, this provided us with valuable insights into the variables that needed further investigation below and those that could be excluded due to their lack of significance in our analysis.
 
 ```{r}
-options(repr.plot.width = 12, repr.plot.height = 12)
+options(repr.plot.width = 12, repr.plot.height = 10)
 
 stroke_pairs <- stroke |>
   select(
@@ -378,6 +378,7 @@ stroke_avg_glucose_level
 ```
 
 There is an association between stroke cases and average glucose level. Patients who had experienced a stroke tend to have higher glucose levels on average than those who had not. While there is overlap between the two groups, the stroke group shows a higher center and a wider spread.
+
 
 ```{r}
 options(repr.plot.width = 8, repr.plot.height = 6)
