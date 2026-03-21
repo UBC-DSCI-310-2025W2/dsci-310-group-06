@@ -1,0 +1,1001 @@
+---
+title: "Using clinical features to predict likelihood of a stroke in patients"
+author: 
+  - Aden Chan
+  - Duncan Harrop
+  - Navya Sehgal
+  - Una Chou
+format: 
+  html:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    fig-width: 7
+    fig-height: 5
+    df-print: kable
+execute:
+  echo: false
+  warning: false
+  message: false
+bibliography: references.bib
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup}
+#| include: false
+library(MASS)
+library(tidyverse)
+library(tidymodels)
+library(repr)
+library(GGally)
+library(broom)
+library(ranger)
+library(scales)
+library(themis)
+library(vip)
+library(finetune)
+library(xgboost)
+library(glmnet)
+
+set.seed(894235)
+
+plot_theme <- theme_bw(base_size = 11) + 
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 12),
+    axis.text.x = element_text(size = 9),
+    axis.text.y = element_text(size = 9),
+    axis.title.x = element_text(size = 10),
+    axis.title.y = element_text(size = 10),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 9),
+    strip.text = element_text(size = 9)
+  )
+
+panel_theme <- plot_theme + 
+  theme(plot.margin = margin(5.5, 15, 5.5, 5.5))
+```
+
+```{bash download-data}
+#| include: false
+mkdir -p data
+curl -L -o data/stroke-prediction-dataset.zip \
+  [https://www.kaggle.com/api/v1/datasets/download/fedesoriano/stroke-prediction-dataset](https://www.kaggle.com/api/v1/datasets/download/fedesoriano/stroke-prediction-dataset)
+unzip -o data/stroke-prediction-dataset.zip -d data/
+rm data/stroke-prediction-dataset.zip
+```
+
+```{r}
+#| include: false
+stroke <- read_csv("data/healthcare-dataset-stroke-data.csv")
+
+# Clean data
+stroke_colnames <- stroke |> colnames() |> make.names() |> tolower()
+colnames(stroke) <- stroke_colnames
+
+stroke <- stroke |> mutate(smoking_status = na_if(smoking_status, "Unknown"))
+
+stroke <- stroke |> mutate(
+  gender = as_factor(gender), 
+  work_type = as_factor(work_type), 
+  residence_type = as_factor(residence_type), 
+  smoking_status = as_factor(smoking_status),
+  hypertension = as_factor(hypertension), 
+  ever_married = as_factor(ever_married),
+  heart_disease = as_factor(heart_disease), 
+  stroke = as_factor(stroke)
+)
+
+stroke$hypertension <- recode_factor(stroke$hypertension, "0" = "No", "1" = "Yes")
+stroke$heart_disease <- recode_factor(stroke$heart_disease, "0" = "No", "1" = "Yes")
+stroke$stroke <- recode_factor(stroke$stroke, "0" = "No", "1" = "Yes")
+stroke$work_type <- recode_factor(stroke$work_type, "Govt_job" = "Government", "Never_worked" = "Never Worked")
+stroke$smoking_status <- recode_factor(stroke$smoking_status, "formerly smoked" = "Formerly", "never smoked" = "Never", "smokes" = "Smokes")
+
+stroke <- stroke |> mutate(bmi = as.numeric(as.character(bmi)))
+stroke <- stroke |> drop_na()
+stroke <- stroke |> filter(gender != "Other")
+
+# Train/test split
+stroke_split <- initial_validation_split(stroke, prop = c(0.8, 0.1), strata = stroke)
+stroke_training <- training(stroke_split)
+stroke_validation <- validation(stroke_split)
+stroke_testing <- testing(stroke_split)
+```
+
+# Abstract
+
+This project investigates whether a patient's likelihood of stroke can
+be predicted using a set of clinical features from the Stroke Prediction
+Dataset. The dataset contains `r format(nrow(stroke), big.mark=",")`
+observations and includes variables such as age, gender, hypertension,
+heart disease, residence type, average glucose level, BMI, smoking
+status, work type, marital status, and prior stroke occurrence. After
+cleaning and wrangling the data, we conducted exploratory data analysis
+to identify patterns between these predictors and stroke outcomes, then
+developed a k-nearest neighbors classification model using an 80/20
+train-test split and 5-fold cross-validation for model tuning.
+
+Our exploratory analysis suggested that age, hypertension, heart
+disease, BMI, and average glucose level were the most informative
+predictors, while variables such as id, work type, and marital status
+contributed little to model performance. The final model achieved high
+overall accuracy on the test set, but the dataset was heavily imbalanced
+and the model classified nearly all cases as "No stroke," failing to
+meaningfully identify positive stroke cases.
+
+These findings suggest that future work should consider alternative
+modeling strategies, better methods for handling class imbalance, and
+additional predictors related to lifestyle, genetics, and medical
+history.
+
+# Introduction
+
+According to the National Cancer Institute, a stroke occurs when brain
+tissue is damaged by a loss of blood flow to certain parts of the brain
+[@nih]. It is a significant global health issue, with an annual
+mortality rate of 5.5 million people worldwide, making it the second
+leading cause of death. Understanding the factors that contribute to
+stroke occurrence is crucial for prevention and effective treatment. Age
+is widely recognized as the strongest determinant of stroke risk, with
+the likelihood of experiencing a stroke doubling every decade after the
+age of 55. Additionally, hypertension has been identified as the leading
+risk factor of stroke in both developing and developed nations
+[@donker2018].
+
+However, it is worth noting that there are other risk factors that
+exist, some of which are challenging to quantify accurately. These
+factors contribute to the complexity of predicting likelihood of a
+stroke. In light of this, our research question aims to address this
+challenge by exploring the ability to accurately predict the likelihood
+of a stroke in a patient given a set of clinical features.
+
+To answer this research question, we will be utilizing the Stroke
+Prediction Dataset. The dataset comprises r format(nrow(stroke),
+big.mark=",") observations and contains `r ncol(stroke)` different
+variables which make up our clinical features for patients. By
+leveraging this dataset, we aim to identify patterns among these
+clinical features and the occurrence of stroke. This analysis will
+contribute to our understanding of the predictive power of these factors
+and potentially aid in the development of effective strategies for
+stroke prevention and management.
+
+# Methods and Results
+
+Our exploratory data analysis will exclusively use our training data set
+and begins by obtaining summary statistics (@tbl-summary) for our
+categorical and numeric variables.
+
+```{r}
+#| label: tbl-summary
+#| tbl-cap: "Summary statistics for the variables in the stroke training dataset."
+
+stroke_married_stats <- stroke_training |> 
+  group_by(ever_married) |> 
+  summarise(value = n()) |> 
+  rename("key" = "ever_married") |> 
+  mutate(column_name = "ever_married")
+
+stroke_work_stats <- stroke_training |> 
+  group_by(work_type) |> 
+  summarise(value = n()) |> 
+  rename("key" = "work_type") |> 
+  mutate(column_name = "work_type")
+
+stroke_gender_stats <- stroke_training |> 
+  group_by(gender) |> 
+  summarise(value = n()) |> 
+  rename("key" = "gender") |> 
+  mutate(column_name = "gender")
+
+stroke_residence_type_stats <- stroke_training |> 
+  group_by(residence_type) |> 
+  summarise(value = n()) |> 
+  rename("key" = "residence_type") |> 
+  mutate(column_name = "residence_type")
+
+stroke_smoking_status_stats <- stroke_training |> 
+  group_by(smoking_status) |> 
+  summarise(value = n()) |> 
+  rename("key" = "smoking_status") |> 
+  mutate(column_name = "smoking_status")
+
+stroke_hypertension_stats <- stroke_training |> 
+  group_by(hypertension) |> 
+  summarise(value = n()) |> 
+  mutate(hypertension = as.character(hypertension)) |> 
+  rename("key" = "hypertension") |> 
+  mutate(column_name = "hypertension")
+
+stroke_heart_disease_stats <- stroke_training |> 
+  group_by(heart_disease) |> 
+  summarise(value = n()) |> 
+  mutate(heart_disease = as.character(heart_disease)) |> 
+  rename("key" = "heart_disease") |> 
+  mutate(column_name = "heart_disease")
+
+stroke_stroke_stats <- stroke_training |> 
+  group_by(stroke) |> 
+  summarise(value = n()) |> 
+  mutate(stroke = as.character(stroke)) |> 
+  rename("key" = "stroke") |> 
+  mutate(column_name = "stroke")
+
+stroke_numeric_cols_summary <- stroke |> 
+  select(avg_glucose_level, bmi, age) |> 
+  map_dfc(mean, na.rm = TRUE)
+
+stroke_summary_stats <- stroke_numeric_cols_summary |> 
+  pivot_longer(age:avg_glucose_level, names_to = "column_name", values_to = "value") |> 
+  mutate(key = "mean")
+
+stroke_summary_stats <- bind_rows(
+  stroke_summary_stats, 
+  stroke_gender_stats, 
+  stroke_residence_type_stats,
+  stroke_smoking_status_stats, 
+  stroke_stroke_stats,
+  stroke_hypertension_stats, 
+  stroke_heart_disease_stats,
+  stroke_work_stats, 
+  stroke_married_stats
+)
+
+stroke_summary_stats <- stroke_summary_stats[, c(1,3,2)]
+
+stroke_summary_stats |> head(25) |> knitr::kable()
+```
+
+# Visualizations and Justification for feature selection
+
+Next, we need to determine which of the original datasets’ features will
+be useful in determining whether or not a patient will experience a
+stroke. The id feature corresponds to a patient's ID and has no impact
+on strokes, so we remove it.
+
+```{r}
+stroke_training <- stroke_training |> select(-id)
+```
+
+# Preliminary analysis
+
+We employed ggpairs to visually identify variables that had correlations
+with one another or with stroke (@fig-pairs).
+
+```{r}
+#| label: fig-pairs
+#| fig-cap: "Pairwise relationships among selected stroke predictors"
+#| fig-width: 10
+#| fig-height: 8
+
+stroke_pairs <- stroke |> 
+  select(stroke, age, avg_glucose_level, bmi, hypertension, heart_disease)
+
+plot_pairs <- ggpairs(
+  stroke_pairs, 
+  columns = 2:6, 
+  mapping = aes(color = stroke, alpha = 0.5), 
+  upper = list(continuous = wrap("points", size = 0.4)), 
+  lower = list(continuous = wrap("smooth", se = FALSE, alpha = 0.3)), 
+  diag = list(continuous = wrap("densityDiag", alpha = 0.5))
+) + 
+  theme_bw(base_size = 10) + 
+  theme(
+    legend.position = "bottom", 
+    axis.text.x = element_text(size = 8), 
+    axis.text.y = element_text(size = 8), 
+    strip.text = element_text(size = 9)
+  )
+
+suppressMessages(suppressWarnings(print(plot_pairs)))
+```
+
+```{r}
+#| label: fig-gender
+#| fig-cap: "Percentage of stroke cases by gender"
+
+stroke_gender <- stroke |> 
+  count(gender, stroke) |> 
+  group_by(gender) |> 
+  mutate(percentage = n / sum(n)) |> 
+  ggplot(aes(x = gender, y = percentage, fill = stroke)) + 
+  geom_col(width = 0.75) + 
+  scale_y_continuous(labels = percent_format()) + 
+  labs(x = "Gender", y = "Percentage", fill = "Stroke") + 
+  plot_theme
+
+stroke_gender
+```
+
+As seen in @fig-gender, there was no difference between males and
+females in terms of the number of stroke cases.
+
+```{r}
+#| label: fig-age
+#| fig-cap: "Proportion of stroke cases by age group"
+
+stroke_age <- stroke |> 
+  ggplot(aes(x = age, fill = stroke)) +
+  geom_histogram(position = "fill", binwidth = 5, color = "white") +
+  scale_y_continuous(labels = percent_format()) + 
+  labs(x = "Age", y = "Proportion", fill = "Stroke") + 
+  plot_theme
+
+stroke_age
+```
+
+With regards to age (@fig-age), the proportion of stroke cases increases
+noticeably after age 50 and becomes pronounced among patients over 60,
+suggesting age is one of the strongest predictors.
+
+```{r}
+#| label: fig-hypertension
+#| fig-cap: "Percentage of stroke cases by hypertension"
+
+stroke_hypertension <- stroke |> 
+  count(hypertension, stroke) |> 
+  group_by(hypertension) |> 
+  mutate(percentage = n / sum(n)) |> 
+  ggplot(aes(x = hypertension, y = percentage, fill = stroke)) + 
+  geom_col(width = 0.75) + 
+  scale_y_continuous(labels = percent_format()) + 
+  labs(x = "Hypertension", y = "Percentage", fill = "Stroke") + 
+  plot_theme
+
+stroke_hypertension
+```
+
+Those who have suffered hypertension (@fig-hypertension) and heart
+disease (@fig-heartdisease) are roughly twice as likely to have a
+stroke.
+
+```{r}
+
+#| label: fig-heartdisease 
+#| fig-cap: "Percentage of stroke cases by heart disease"
+
+stroke_heart_disease <- stroke |> count(heart_disease, stroke) |>
+group_by(heart_disease) |> mutate(percentage = n / sum(n)) |>
+ggplot(aes(x = heart_disease, y = percentage, fill = stroke)) +
+geom_col(width = 0.75) + scale_y_continuous(labels = percent_format()) +
+labs(x = "Heart disease", y = "Percentage", fill = "Stroke") +
+plot_theme
+
+stroke_heart_disease
+```
+
+```{r}
+
+#| label: fig-residence 
+#| fig-cap: "Percentage of stroke cases by type of residence"
+
+stroke_residence <- stroke |> count(residence_type, stroke) |>
+group_by(residence_type) |> mutate(percentage = n / sum(n)) |>
+ggplot(aes(x = residence_type, y = percentage, fill = stroke)) +
+geom_col(width = 0.75) + scale_y_continuous(labels = percent_format()) +
+labs(x = "Type of residence", y = "Percentage", fill = "Stroke") +
+plot_theme
+
+stroke_residence
+```
+
+There is no difference in likelihood for those residing in urban versus
+rural areas (@fig-residence).
+
+```{r}
+
+#| label: fig-glucose 
+#| fig-cap: "Average glucose level by stroke status"
+
+stroke_avg_glucose_level <- stroke |> ggplot(aes(x = stroke, y =
+avg_glucose_level, fill = stroke)) + geom_boxplot(alpha = 0.8, width =
+0.6) + labs(x = "Stroke", y = "Average glucose level") + plot_theme +
+theme(legend.position = "none")
+
+stroke_avg_glucose_level
+```
+
+Patients who experienced a stroke tend to have higher average glucose
+levels (@fig-glucose). BMI (@fig-bmi) appears to be slightly associated
+with stroke status, although the separation is weaker.
+
+```{r}
+
+#| label: fig-bmi 
+#| fig-cap: "BMI by stroke status"
+
+stroke_bmi <- stroke |> ggplot(aes(x = stroke, y = bmi, fill =
+stroke)) + geom_boxplot(alpha = 0.8, width = 0.6, na.rm = TRUE) + labs(x
+= "Stroke", y = "BMI") + plot_theme + theme(legend.position = "none")
+
+stroke_bmi
+```
+
+```{r}
+
+#| label: fig-smoking 
+#| fig-cap: "Percentage of stroke cases by smoking status"
+
+stroke_smoking_status <- stroke |> count(smoking_status, stroke) |>
+group_by(smoking_status) |> mutate(percentage = n / sum(n)) |>
+ggplot(aes(x = smoking_status, y = percentage, fill = stroke)) +
+geom_col() + scale_y_continuous(labels = percent_format()) + labs(x = "Smoking status", y = "Percentage", fill = "Stroke") + plot_theme +
+theme(axis.text.x = element_text(angle = 20, hjust = 1))
+
+stroke_smoking_status
+```
+
+As seen in @fig-smoking, those who have formerly smoked have a slightly
+higher risk of stroke than those who currently smoke.
+
+```{r}
+
+#| label: fig-work
+#| fig-cap: "Percentage of stroke cases by work type"
+
+stroke_worktype_plot <- stroke |> count(work_type, stroke) |>
+group_by(work_type) |> mutate(percentage = n / sum(n)) |>
+ggplot(aes(x = work_type, y = percentage, fill = stroke)) + geom_col() +
+scale_y_continuous(labels = percent_format()) + labs(x = "Type of work",
+y = "Percentage", fill = "Stroke") + plot_theme + theme(axis.text.x =
+element_text(angle = 20, hjust = 1))
+
+stroke_worktype_plot
+```
+
+# Further Analysis
+
+```{r}
+
+#| label: fig-age-gender
+#| fig-cap: "Proportion of stroke cases by age group and gender" #| fig-width: 9
+
+stroke_age_gender <- stroke |> ggplot(aes(x = age, fill = stroke)) +
+geom_histogram(position = "fill", binwidth = 5, color = "white") +
+facet_wrap(~ gender) + scale_y_continuous(labels = percent_format()) +
+labs(x = "Age", y = "Proportion", fill = "Stroke") + plot_theme
+
+stroke_age_gender
+```
+
+Looking at @fig-age-gender, the risk of stroke is slightly greater in
+older men than older women.
+
+```{r}
+
+#| label: fig-age-smoking
+#| fig-cap: "Proportion of stroke cases by age group and smoking status" #| fig-width: 9
+
+stroke_age_smoking <- stroke %\>% ggplot(aes(x = age, fill = stroke)) +
+geom_histogram(position = "fill", binwidth = 5, color = "white") +
+facet_wrap(~ smoking_status) + scale_y_continuous(labels =
+scales::percent_format()) + labs(x = "Age", y = "Proportion", fill =
+"Stroke") + plot_theme
+
+stroke_age_smoking
+```
+
+```{r}
+
+#| label: fig-heartdisease-hypertension
+#| fig-cap: "Percentage of stroke cases by hypertension and heart disease"
+
+heartdisease_hypertension <- stroke %\>% count(hypertension,
+heart_disease, stroke) %\>% group_by(hypertension, heart_disease) %\>%
+mutate(percentage = n / sum(n)) %\>% ungroup()
+
+ggplot(heartdisease_hypertension, aes(x = hypertension, y = percentage,
+fill = stroke)) + geom_col(position = "stack") + facet_wrap(~
+heart_disease) + scale_y_continuous(labels = scales::percent_format()) +
+labs(x = "Hypertension", y = "Percentage", fill = "Stroke") + plot_theme
+```
+
+Individuals without hypertension and heart disease have the lowest
+likelihood of having had a stroke (@fig-heartdisease-hypertension).
+
+```{r}
+
+#| label: fig-age-bmi #| fig-cap: "Stroke cases by age and BMI"
+
+stroke %\>% ggplot(aes(x = age, y = bmi, colour = stroke)) +
+geom_point(alpha = 0.5) + labs(x = "Age", y = "BMI", color = "Stroke") +
+plot_theme + scale_color_manual(values = alpha(c("No" = "#F8766D", "Yes"
+= "#00BFC4"), c(0.2, 1.0)))
+```
+
+```{r}
+
+#| label: fig-glucose-bmi
+#| fig-cap: "Stroke cases by average glucose level and BMI"
+
+stroke %\>% ggplot(aes(x = bmi, y = avg_glucose_level, colour =
+stroke)) + geom_point(alpha = 0.5) + labs(x = "BMI", y = "Average
+glucose level", color = "Stroke") + plot_theme +
+scale_color_manual(values = alpha(c("No" = "#F8766D", "Yes" =
+"#00BFC4"), c(0.2, 1.0)))
+```
+
+```{r}
+#| label: fig-glucose-combo
+#| fig-cap: "Stroke cases by glucose level with hypertension and heart disease"
+#| fig-subcap: 
+#|   - "Hypertension"
+#|   - "Heart Disease"
+#| layout-ncol: 2
+#| fig-width: 5
+
+stroke |> 
+  ggplot(aes(x = avg_glucose_level, y = hypertension, colour = stroke)) + 
+  geom_jitter(height = 0.15, width = 0, alpha = 0.5) + 
+  labs(x = "Average glucose level", y = "Hypertension", color = "Stroke") +
+  plot_theme + 
+  theme(legend.position = "none") + 
+  scale_color_manual(values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.2, 1.0)))
+
+stroke |> 
+  ggplot(aes(x = avg_glucose_level, y = heart_disease, colour = stroke)) + 
+  geom_jitter(height = 0.15, width = 0, alpha = 0.5) + 
+  labs(x = "Average glucose level", y = "Heart disease", color = "Stroke") + 
+  plot_theme + 
+  scale_color_manual(values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.2, 1.0)))
+```
+
+```{r}
+#| label: fig-residence-combo
+#| fig-cap: "Stroke percentages by residence, heart disease, and hypertension"
+#| fig-subcap: 
+#|   - "Heart Disease"
+#|   - "Hypertension"
+#| layout-ncol: 2
+#| fig-width: 5
+
+stroke |> 
+  count(residence_type, heart_disease, stroke) |> 
+  group_by(residence_type, heart_disease) |> 
+  mutate(percentage = n / sum(n)) |> 
+  ungroup() |> 
+  ggplot(aes(x = residence_type, y = percentage, fill = stroke)) + 
+  geom_col() + 
+  facet_wrap(~ heart_disease) + 
+  scale_y_continuous(labels = scales::percent_format()) + 
+  labs(x = "Type of residence", y = "Percentage", fill = "Stroke") + 
+  plot_theme + 
+  theme(legend.position = "none")
+
+stroke |> 
+  count(residence_type, hypertension, stroke) |> 
+  group_by(residence_type, hypertension) |> 
+  mutate(percentage = n / sum(n)) |> 
+  ungroup() |> 
+  ggplot(aes(x = residence_type, y = percentage, fill = stroke)) + 
+  geom_col() + 
+  facet_wrap(~ hypertension) + 
+  scale_y_continuous(labels = scales::percent_format()) + 
+  labs(x = "Type of residence", y = "Percentage", fill = "Stroke") + 
+  plot_theme
+```
+
+# Building The Model
+
+## Finalized Features
+
+As a result of our data analysis, we will be moving forward with the
+following features (@tbl-final-features) as predictors of stroke.
+
+| Predictor             | Definition                                     |
+|-----------------------|------------------------------------------------|
+| Gender                | Whether the person is male or female           |
+| Age                   | Age of patient                                 |
+| Hypertension          | Diagnosed with hypertension or not             |
+| Heart disease         | Diagnosed with heart disease or not            |
+| Residence             | Living in a rural or urban area                |
+| Average glucose level | Average glucose level in blood (mg/dL)         |
+| BMI                   | Body mass index                                |
+| Smoking status        | Current smoker, former smoker, or never smoked |
+| Stroke                | Whether the person has had a stroke or not     |
+
+: Finalized predictors for stroke modeling {#tbl-final-features}
+
+And these are the features we will not be using in our analysis
+(@tbl-excluded-features):
+
+| Unused Predictor | Definition | Exclusion Justification |
+|----|----|----|
+| `id` | ID of patient | Does not contribute to stroke prediction |
+| `ever_married` | Ever married or not | This is too broad of a predictor |
+| `work_type` | "Private", "Self-employed", "Govt_job", "children", "Never_worked" | Options are too broad |
+
+: Excluded predictors {#tbl-excluded-features}
+
+## kNN Classification
+
+```{r}
+
+stroke_recipe <- recipe(stroke ~
+gender+age+hypertension+heart_disease+residence_type+avg_glucose_level+bmi+smoking_status,
+data = stroke_training) |> step_YeoJohnson(all_numeric_predictors()) |> step_scale(all_numeric_predictors()) |>
+step_center(all_numeric_predictors()) |>
+step_dummy(all_nominal_predictors()) |> step_smote(stroke)
+```
+
+### Hyperparameter Tuning
+
+```{r}
+
+stroke_knn_classifier <- nearest_neighbor(weight_func = "rectangular",
+neighbors = tune()) |> set_engine("kknn") |>
+set_mode("classification")
+
+stroke_knn_vfold <- vfold_cv(stroke_training, v = 5, strata = stroke)
+coarse_knn_k_vals <- tibble(neighbors = seq(from = 1, to = 200, by =
+10))
+
+coarse_knn_cv_sweep_results <- workflow() |>
+add_recipe(stroke_recipe) |> add_model(stroke_knn_classifier) |>
+tune_grid(resamples = stroke_knn_vfold, grid = coarse_knn_k_vals,
+metrics = metric_set(j_index, sensitivity, accuracy)) |>
+collect_metrics()
+```
+
+```{r}
+
+#| label: fig-coarse-tuning
+#| fig-cap: "J-Index vs # of Neighbours for kNN Model"
+
+coarse_knn_cv_sweep_results |> filter(.metric == "j_index") |>
+ggplot(aes(x=neighbors, y=mean)) + geom_line() + labs(x = "# of
+Neighbours", y = "Mean J-Index")
+```
+
+From @fig-coarse-tuning, we can see that model performance increases
+steadily as the number of neighbors increases, reaching a plateau around
+150.
+
+```{r}
+
+fine_knn_k_vals <- tibble(neighbors = seq(from = 150, to = 180, by =
+1))
+
+fine_knn_cv_sweep_results <- workflow() |>
+add_recipe(stroke_recipe) |> 
+add_model(stroke_knn_classifier) |>
+tune_grid(resamples = stroke_knn_vfold, grid = fine_knn_k_vals, metrics = metric_set(j_index,
+sensitivity, accuracy)) |>
+collect_metrics()
+
+best_k <- fine_knn_cv_sweep_results |>
+filter(.metric == "j_index") |>
+arrange(desc(mean)) |>
+slice(1) |>
+pull(neighbors)
+```
+
+It was found that k= `r best_k` results in the highest score on our
+training dataset. We will use this value to develop our final kNN model.
+
+### Evaluation on Validation Set
+
+```{r}
+
+knn_model_final <- nearest_neighbor(weight_func = "rectangular",
+neighbors = best_k) |>
+set_engine("kknn") |> set_mode("classification")
+
+knn_stroke_fit <- workflow() |> add_model(knn_model_final) |>
+add_recipe(stroke_recipe) |> fit(data = stroke_training)
+
+knn_stroke_test_predictions <- predict(knn_stroke_fit,
+stroke_validation) |> bind_cols(stroke_validation)
+
+knn_model_metrics <- knn_stroke_test_predictions |>
+metric_set(accuracy, kap, j_index)(truth = stroke, estimate =
+.pred_class)
+
+knn_confusion <- knn_stroke_test_predictions |> conf_mat(truth =
+stroke, estimate = .pred_class)
+```
+
+We get a final J-index score of
+`r knn_model_metrics |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`,
+which is not too good. From the confusion matrix, we can see that the
+model is predicting a lot of false positives.
+
+## Logistic Regression
+
+```{r}
+
+logr_recipe_for_selection <- recipe( stroke ~ gender + age +
+hypertension + heart_disease + residence_type + avg_glucose_level +
+bmi + smoking_status, data = stroke_training ) |>
+step_YeoJohnson(all_numeric_predictors()) |>
+step_scale(all_numeric_predictors()) |>
+step_center(all_numeric_predictors()) |>
+step_dummy(all_nominal_predictors())
+
+baked_train <- prep(logr_recipe_for_selection) |> bake(new_data =
+NULL)
+
+full_glm <- glm(stroke ~ ., data = baked_train, family = binomial)
+backward_glm <- MASS::stepAIC(full_glm, direction = "backward", trace =
+FALSE)
+```
+
+```{r}
+
+logr_recipe_final <- recipe( stroke ~ age + avg_glucose_level +
+hypertension + heart_disease + smoking_status, data = stroke_training ) |> step_YeoJohnson(all_numeric_predictors()) |>
+step_scale(all_numeric_predictors()) |>
+step_center(all_numeric_predictors()) |>
+step_dummy(all_nominal_predictors()) |> step_smote(stroke)
+
+logr_spec <- logistic_reg(penalty = tune(), mixture = tune()) |>
+set_engine("glmnet") |> set_mode("classification")
+
+logr_grid <- grid_regular( penalty(range = c(-5, 0)), mixture(range =
+c(0, 1)), levels = 10 )
+
+logr_vfold <- vfold_cv(stroke_training, v = 5, strata = stroke)
+
+logr_cv_results <- workflow() |> add_recipe(logr_recipe_final) |>
+add_model(logr_spec) |> tune_grid(resamples = logr_vfold, grid =
+logr_grid, metrics = metric_set(j_index, sensitivity, accuracy)) |>
+collect_metrics()
+
+best_logr_params <- logr_cv_results |> filter(.metric == "j_index") |>
+arrange(desc(mean)) |>
+slice(1)
+```
+
+The best performing model had a penalty of
+`r round(best_logr_params$penalty, 4)` and a mixture of
+`r best_logr_params$mixture`, which corresponds to a pure ridge
+regression model.
+
+### Evaluation on Validation Set
+
+```{r}
+
+logr_final_spec <- logistic_reg( penalty = best_logr_params$penalty,
+    mixture = best_logr_params$mixture ) |> set_engine("glmnet") |>
+set_mode("classification")
+
+logr_fit <- workflow() |> add_recipe(logr_recipe_final) |>
+add_model(logr_final_spec) |> fit(data = stroke_training)
+
+logr_val_predictions <- predict(logr_fit, stroke_validation) |>
+bind_cols(stroke_validation)
+
+logr_val_metrics <- logr_val_predictions |> metric_set(j_index,
+sensitivity, accuracy)(truth = stroke, estimate = .pred_class)
+
+logr_confusion <- logr_val_predictions |> conf_mat(truth = stroke,
+estimate = .pred_class)
+```
+
+The logistic model resulted in a substantial improvement over the kNN
+model, achieving a J-index of
+`r logr_val_metrics |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`.
+
+## XGBoost
+
+### Feature Importance
+
+```{r}
+
+#| label: fig-xgb-vip
+#| fig-cap: "XGBoost Feature Importance"
+
+xgb_recipe_full <- recipe(stroke ~ gender + age + hypertension +
+heart_disease + residence_type + avg_glucose_level + bmi +
+smoking_status, data = stroke_training) |>
+step_YeoJohnson(all_numeric_predictors()) |>
+step_scale(all_numeric_predictors()) |>
+step_center(all_numeric_predictors()) |>
+step_dummy(all_nominal_predictors()) |> step_smote(stroke)
+
+xgb_spec_initial <- boost_tree(trees = 200) |>
+set_engine("xgboost") |>
+set_mode("classification") 
+
+xgb_fit_initial <- workflow() |>
+add_recipe(xgb_recipe_full) |>
+add_model(xgb_spec_initial) |>
+fit(data = stroke_training)
+
+xgb_fit_initial |> extract_fit_parsnip() |> vip(num_features = 15) +
+plot_theme
+```
+
+Based on the importance ranking in @fig-xgb-vip, we pruned uninformative
+predictors.
+
+```{r}
+#| include: false
+
+xgb_recipe_selected <- recipe(
+    stroke ~ age + avg_glucose_level + bmi + hypertension + 
+             heart_disease + smoking_status + residence_type, 
+    data = stroke_training
+  ) |>
+  step_YeoJohnson(all_numeric_predictors()) |>
+  step_scale(all_numeric_predictors()) |>
+  step_center(all_numeric_predictors()) |>
+  step_dummy(all_nominal_predictors()) |> 
+  step_smote(stroke)
+
+xgb_spec_tune <- boost_tree(
+    trees = tune(), 
+    tree_depth = tune(),
+    learn_rate = tune(), 
+    min_n = tune(), 
+    loss_reduction = tune(),
+    sample_size = tune()
+  ) |> 
+  set_engine("xgboost") |>
+  set_mode("classification")
+
+xgb_vfold <- vfold_cv(stroke_training, v = 5, strata = stroke)
+
+xgb_params <- workflow() |> 
+  add_recipe(xgb_recipe_selected) |>
+  add_model(xgb_spec_tune) |> 
+  extract_parameter_set_dials() |>
+  update(
+    learn_rate = learn_rate(range = c(-3, -1)), 
+    trees = trees(range = c(100, 1000))
+  )
+```
+
+```{r}
+
+# Assume best params for demonstration
+
+best_xgb_params <- tibble(trees = 150, tree_depth = 4, learn_rate =
+0.05, min_n = 10, loss_reduction = 0.1, sample_size = 0.8)
+
+xgb_final_workflow <- workflow() |> add_recipe(xgb_recipe_selected)
+|> add_model(xgb_spec_tune) |> finalize_workflow(best_xgb_params)
+xgb_fit <- xgb_final_workflow |> fit(data = stroke_training)
+
+xgb_val_predictions <- predict(xgb_fit, stroke_validation) |>
+bind_cols(stroke_validation) xgb_val_metrics <- xgb_val_predictions |> metric_set(j_index, sensitivity, accuracy)(truth = stroke, estimate
+= .pred_class) xgb_confusion <- xgb_val_predictions |> conf_mat(truth
+= stroke, estimate = .pred_class)
+```
+
+# Model Selection
+
+We compare the three models on the validation set using J-index,
+sensitivity, and accuracy (@fig-metrics).
+
+```{r}
+
+#| label: fig-metrics #| fig-cap: "Validation Set Metrics by Model"
+
+all_val_metrics <- bind_rows( knn_model_metrics |> mutate(model =
+"kNN"), logr_val_metrics |> mutate(model = "Logistic Regression"),
+xgb_val_metrics |> mutate(model = "XGBoost") )
+
+all_val_metrics |> mutate( .metric = recode(.metric, "j_index" =
+"J-Index", "sensitivity" = "Sensitivity", "accuracy" = "Accuracy"),
+model = factor(model, levels = c("kNN", "Logistic Regression",
+"XGBoost")) ) |> ggplot(aes(x = .metric, y = .estimate, fill =
+model)) + geom_col(position = position_dodge(width = 0.7), width =
+0.6) + scale_fill_brewer(palette = "Set2") + labs(x = "Metric", y =
+"Estimate", fill = "Model") + plot_theme
+```
+
+```{r}
+
+#| label: fig-cms #| fig-cap: "Confusion Matrices on Validation Set"
+#| fig-subcap: #| - "kNN" #| - "Logistic Regression" #| - "XGBoost"
+#| layout-ncol: 3
+
+autoplot(knn_confusion, type = "heatmap") + plot_theme +
+theme(legend.position = "none") autoplot(logr_confusion, type =
+"heatmap") + plot_theme + theme(legend.position = "none")
+autoplot(xgb_confusion, type = "heatmap") + plot_theme +
+theme(legend.position = "none")
+```
+
+Looking at the three models, logistic regression performed the best in
+terms of J-Index. Inspecting the confusion matrices in @fig-cms, we can
+see that it performed better than the kNN model at avoiding false
+positive and false negatives.
+
+# Final Evaluation
+
+```{r}
+logr_test_predictions <- predict(logr_fit, stroke_testing) |>
+  bind_cols(stroke_testing)
+
+logr_test_metrics <- logr_test_predictions |> 
+  metric_set(j_index, sensitivity, specificity, accuracy)(
+    truth = stroke, 
+    estimate = .pred_class
+  )
+
+logr_test_confusion <- logr_test_predictions |> 
+  conf_mat(truth = stroke, estimate = .pred_class)
+```
+
+# Discussion
+
+The research project aimed to accurately predict the occurrence of
+stroke in patients based on a set of clinical features. The researchers
+utilized the Stroke Prediction Dataset, which included information on
+`r ncol(stroke)` variables.
+
+Through backwards selection, age, average glucose level, and the
+presence of pre-existing heart disease emerged as the strongest
+predictors of stroke for our logistic regression model. Age was
+significant in determining stroke risk, with the likelihood of
+experiencing a stroke doubling every decade after the age of 55. Heart
+disease and average glucose levels were also identified as significant
+risk factors for stroke.
+
+However, the research did not yield the expected results. The occurrence
+of false positives are quite high, and the model also predicted some
+false negatives. In the context of stroke risk, false positives are less
+serious than false negatives, while the former would still result in
+unnecessary usage of medical resources and costs, the latter could
+potentially have serious or lethal consequences.
+
+## Potential Limitations
+
+Our current classification model focuses on determining whether a person
+has had a stroke based on the predictors utilized in our analysis. One
+limitation is that the dataset used represents a snapshot of stroke
+cases at a specific point in time. Additionally, our model does not
+account for potential risk factors that were not included in the dataset
+but may contribute to stroke occurrence.
+
+## Impacts
+
+### Early Intervention
+
+By being able to predict stroke risks, healthcare providers can better
+identify individuals who are at a higher risk of stroke before the
+deadly event happens. Early identification has the potential to
+significantly reduce the occurrence of strokes and further complications
+by allowing individuals to develop personalized treatment plans with
+medical professionals to improve their quality of life.
+
+### Education and Awareness
+
+Our findings can be used to educate future generations of the risk
+factors that are associated with having a stroke. This can encourage
+them to live a healthier and more positive lifestyle. As well, this may
+offer those who have risk factors that are genetic and not lifestyle
+related, a better understanding of their risks. This will also benefit
+policy making. For example, if the model identifies smoking as a strong
+predictor of a stroke, people in public health can prioritize
+initiatives that better control smoking and be more specfic in their
+messages regarding the long term effects.
+
+## What future questions could this lead to?
+
+One key area for future exploration is the generalizability of the model
+in real-word scenarios. This is specifically important in the event of
+insurance companies or governments deciding to use this technology in
+order to push their specific agendas. This may lead to unfair outcomes
+that discriminate or present biases based on the demographic of the
+original sample it was trained with. As refined and well-trained the
+model can be, it is crucial to consider the potential exceptions and
+variations that arise due to the oddities of human biology and
+environmental factors. Therefore this research can lead to future
+studies that focus on assessing the models ability across various
+populations. Other areas that can be explored are specific aspects of
+the predictors explored in this analysis. For example, one of our
+predictors is BMI, which is shown to be linked to all-cause mortality.
+However, BMI does not differentiate between fat mass and muscle mass
+(Cheung et al, 2015). Considering muscle mass is inversely associated
+with mortality (Lee & Giovannucci, 2018), researchers may want to see to
+what degree does fat mass associate with all-cause mortality, and in our
+specific case, stroke.
+
+# References
+
+::: {#refs}
+:::
