@@ -7,14 +7,11 @@
 4. Una Chou (@uchou92) - 55282636
 
 # Project Summary
+This project explored the ability to predict the likelihood of a patient experiencing a stroke based on clinical features such as age, average glucose levels, BMI, and pre-existing conditions like hypertension and heart disease. Through exploratory data analysis, we identified that older age (particularly over 55), higher average glucose levels, and the presence of heart disease or hypertension are strongly associated with an increased prevalence of strokes.
 
-This project explored the ability to predict the likelihood of a patient experiencing a stroke based on clinical features such as age, BMI, average glucose levels, and pre-existing conditions (hypertension and heart disease). Through exploratory data analysis, we identified that older age, higher BMI, hypertension, and heart disease are visibly associated with an increased prevalence of strokes. 
+To formalize these predictions and address the severe class imbalance inherent in the dataset, we applied the Synthetic Minority Over-sampling Technique (SMOTE) to rebalance our data prior to training. We then developed and evaluated three distinct classification models: K-Nearest Neighbors (KNN), regularized Logistic Regression, and XGBoost. To prevent the models from defaulting to the majority "No stroke" class—and to ensure we weren't masking poor predictive performance with high overall accuracy—we evaluated the models using the J-index, which equally weights sensitivity and specificity. Logistic Regression emerged as the strongest candidate, significantly outperforming the others in minimizing false negatives, ultimately achieving a J-index of 0.5556 on the final unseen test set.
 
-To formalize these predictions, we trained a K-Nearest Neighbors (KNN) classification model. However, our results revealed a critical limitation: despite achieving a seemingly high overall accuracy of 94.5%, the model suffered from severe class imbalance and predicted "No stroke" for every single patient in the test set. 
-
-**What this means:** Our findings demonstrate that standard classification models trained on heavily imbalanced clinical data will default to the majority class, resulting in dangerous Type II errors (false negatives) where at-risk patients are missed. To build a clinically viable predictive tool, future iterations must utilize data rebalancing techniques (like oversampling the stroke cases) and likely need to incorporate broader, patient-specific variables such as genetic history and detailed lifestyle choices.
-
-
+***What this means:*** Our findings demonstrate that utilizing data rebalancing techniques like SMOTE and optimizing for comprehensive metrics like the J-index can successfully combat class imbalance and reduce dangerous Type II errors (false negatives) where at-risk patients are missed. However, the model still produced a notable number of false positives and exhibited some difficulty generalizing to new data. This indicates that while clinical snapshots are useful, building a highly accurate, clinically viable predictive tool requires incorporating broader, patient-specific variables, such as genetic history, detailed lifestyle choices, and longitudinal health records.
 # How to Run Data Analysis
 Please follow these steps to reproduce the analysis on your local machine:
 ### 1. Run Docker Image
