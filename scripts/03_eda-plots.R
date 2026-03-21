@@ -12,6 +12,10 @@ if (!dir.exists("results/figures")) {
   dir.create("results/figures", recursive = TRUE)
 }
 
+if (!dir.exists("results/tables")) {
+  dir.create("results/tables", recursive = TRUE)
+}
+
 # Load training data
 stroke_training <- read_csv("data/processed/stroke_training.csv")
 
@@ -108,7 +112,7 @@ stroke_summary_stats <- stroke_numeric_cols_summary |>
   )
 stroke_summary_stats <- stroke_summary_stats[, c(1, 3, 2)]
 
-write_csv(stroke_summary_stats, "results/figures/01_summary-stats.csv")
+write_csv(stroke_summary_stats, "results/tables/01_summary-stats.csv")
 
 # Figure 01: ggpairs plot
 
