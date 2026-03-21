@@ -183,7 +183,8 @@ stroke_summary_stats <- bind_rows(stroke_summary_stats,
                                   stroke_work_stats,
                                   stroke_married_stats)
 stroke_summary_stats <- stroke_summary_stats[, c(1,3,2)]
-stroke_summary_stats |> as_tibble() |> print(n = 25)
+stroke_summary_stats |>
+  knitr::kable(caption = "Summary Statistics of Stroke Dataset")
 ```
 
 ## Visualizations and Justification for feature selection
@@ -560,9 +561,10 @@ While there isn't a strong association between heart disease and gender, both ma
 ```{r}
 options(repr.plot.width = 8, repr.plot.height = 6)
 
-age_bmi <- stroke %>%
+age_bmi <- stroke |>
   ggplot(aes(x = age, y = bmi, colour = stroke)) +
-  geom_point(alpha = 0.5) +
+  geom_point(alpha = 0.15, size = 1) +
+  geom_smooth(se = FALSE, linewidth = 0.8) +
   labs(
     x = "Age",
     y = "BMI",
@@ -571,7 +573,7 @@ age_bmi <- stroke %>%
   ) +
   plot_theme +
   scale_color_manual(
-    values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.2, 1.0))
+    values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.25, 1.0))
   )
 
 age_bmi
@@ -580,9 +582,12 @@ age_bmi
 Age seems to be the main predictor of stroke when BMI is roughly under 25. However, this is not for a majority of the cases. Most cases where participants have suffered a stroke, they tend to be above 50 years old and have a BMI of greater than 25.
 
 ```{r}
-glucose_bmi <- stroke %>%
+options(repr.plot.width = 8, repr.plot.height = 6)
+
+glucose_bmi <- stroke |>
   ggplot(aes(x = bmi, y = avg_glucose_level, colour = stroke)) +
-  geom_point(alpha = 0.5) +
+  geom_point(alpha = 0.15, size = 1) +
+  geom_smooth(se = FALSE, linewidth = 0.8) +
   labs(
     x = "BMI",
     y = "Average glucose level",
@@ -590,7 +595,9 @@ glucose_bmi <- stroke %>%
     title = "Figure 16. Stroke cases by average glucose level and BMI"
   ) +
   plot_theme +
-  scale_color_manual(values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.2, 1.0)))
+  scale_color_manual(
+    values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.25, 1.0))
+  )
 
 glucose_bmi
 ```
@@ -651,9 +658,9 @@ A similar pattern appears when examining heart disease. Most non-stroke observat
 ```{r}
 options(repr.plot.width = 15, repr.plot.height = 6)
 
-residence_heartdisease <- stroke %>%
+residence_heartdisease <- stroke |>
   ggplot(aes(x = residence_type, y = heart_disease, colour = stroke)) +
-  geom_jitter(width = 0.15, height = 0.15, alpha = 0.5) +
+  geom_jitter(width = 0.08, height = 0.08, alpha = 0.15, size = 0.8) +
   labs(
     title = "A. Heart disease",
     x = "Type of residence",
@@ -663,12 +670,12 @@ residence_heartdisease <- stroke %>%
   plot_theme +
   theme(legend.position = "none") +
   scale_color_manual(
-    values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.2, 1.0))
+    values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.25, 1.0))
   )
 
-residence_hypertension <- stroke %>%
+residence_hypertension <- stroke |>
   ggplot(aes(x = residence_type, y = hypertension, colour = stroke)) +
-  geom_jitter(width = 0.15, height = 0.15, alpha = 0.5) +
+  geom_jitter(width = 0.08, height = 0.08, alpha = 0.15, size = 0.8) +
   labs(
     title = "B. Hypertension",
     x = "Type of residence",
@@ -677,7 +684,7 @@ residence_hypertension <- stroke %>%
   ) +
   plot_theme +
   scale_color_manual(
-    values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.2, 1.0))
+    values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.25, 1.0))
   )
 
 grid.arrange(
@@ -694,15 +701,23 @@ grid.arrange(
 ```{r}
 options(repr.plot.width = 15, repr.plot.height = 6)
 
-heartdisease_residence <- stroke %>%
-  count(residence_type, heart_disease, stroke) %>%
-  group_by(residence_type, heart_disease) %>%
-  mutate(percentage = n / sum(n)) %>%
-  ungroup() %>%
+heartdisease_residence <- stroke |>
+  count(residence_type, heart_disease, stroke) |>
+  group_by(residence_type, heart_disease) |>
+  mutate(percentage = n / sum(n)) |>
+  ungroup() |>
   ggplot(aes(x = residence_type, y = percentage, fill = stroke)) +
   geom_col() +
+  geom_text(
+    aes(label = scales::percent(percentage, accuracy = 0.1)),
+    position = position_stack(vjust = 0.5),
+    size = 2.8
+  ) +
   facet_wrap(~ heart_disease) +
-  scale_y_continuous(labels = scales::percent_format()) +
+  scale_y_continuous(
+    labels = scales::percent_format(),
+    expand = c(0, 0)
+  ) +
   labs(
     title = "A. Heart disease",
     x = "Type of residence",
@@ -712,15 +727,23 @@ heartdisease_residence <- stroke %>%
   plot_theme +
   theme(legend.position = "none")
 
-hypertension_residence <- stroke %>%
-  count(residence_type, hypertension, stroke) %>%
-  group_by(residence_type, hypertension) %>%
-  mutate(percentage = n / sum(n)) %>%
-  ungroup() %>%
+hypertension_residence <- stroke |>
+  count(residence_type, hypertension, stroke) |>
+  group_by(residence_type, hypertension) |>
+  mutate(percentage = n / sum(n)) |>
+  ungroup() |>
   ggplot(aes(x = residence_type, y = percentage, fill = stroke)) +
   geom_col() +
+  geom_text(
+    aes(label = scales::percent(percentage, accuracy = 0.1)),
+    position = position_stack(vjust = 0.5),
+    size = 2.8
+  ) +
   facet_wrap(~ hypertension) +
-  scale_y_continuous(labels = scales::percent_format()) +
+  scale_y_continuous(
+    labels = scales::percent_format(),
+    expand = c(0, 0)
+  ) +
   labs(
     title = "B. Hypertension",
     x = "Type of residence",
