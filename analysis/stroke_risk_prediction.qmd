@@ -110,27 +110,27 @@ occurrence. We employed `ggpairs` to identify correlations (@fig-pairs).
 As seen in @fig-gender, there was no significant difference between
 males and females in terms of the percentage of stroke cases.
 
-{#fig-gender}
+![Percentage of stroke cases by gender](results/figures/02_stroke-by-gender.png){#fig-gender}
 
 With regards to age (@fig-age), the proportion of stroke cases increases
 noticeably after age 50, suggesting it is one of the strongest
 predictors.
 
-{#fig-age}
+![Proportion of stroke cases by age group](results/figures/03_stroke-by-age.png){#fig-age}
 
 Patients with hypertension (@fig-hypertension) and heart disease
 (@fig-heartdisease) are roughly twice as likely to have a stroke.
 
 ::: {layout-ncol="2"}
-{#fig-hypertension}
+![Hypertension](results/figures/04_stroke-by-hypertension.png){#fig-hypertension}
 
-{#fig-heartdisease}
+![Heart Disease](results/figures/05_stroke-by-heart-disease.png){#fig-heartdisease}
 :::
 
 Conversely, there is no significant difference in likelihood for those
 residing in urban versus rural areas (@fig-residence).
 
-{#fig-residence}
+![Percentage of stroke cases by type of residence](results/figures/06_stroke-by-residence.png){#fig-residence}
 
 ## Metabolic Factors
 
@@ -138,9 +138,9 @@ Patients who experienced a stroke tend to have higher average glucose
 levels (@fig-glucose) and slightly higher BMI (@fig-bmi).
 
 ::: {layout-ncol="2"}
-{#fig-glucose}
+![Average glucose level by stroke status](results/figures/07_glucose-by-stroke.png){#fig-glucose}
 
-{#fig-bmi}
+![BMI by stroke status](results/figures/08_bmi-by-stroke.png){#fig-bmi}
 :::
 
 # Building The Model
@@ -155,21 +155,30 @@ We tuned three distinct models. For the ***kNN model***, we performed a coarse s
 For the XGBoost model, we utilized Bayesian optimization and analyzed feature importance. Age and average glucose level emerged as the most critical features (@fig-xgb-vip).
 {#fig-xgb-vip}
 
+## Model Comparison and Tuning
+For the **kNN model**, we performed a coarse sweep of neighbors, finding that performance plateaus around $k=150$ (@fig-coarse-tuning).
+
+![J-Index vs # of Neighbours for kNN Model](results/figures/20_coarse-knn-k-sweep.png){#fig-coarse-tuning}
+
+For the **XGBoost model**, we analyzed feature importance. Age and average glucose level emerged as the most critical features (@fig-xgb-vip).
+
+![XGBoost Feature Importance](results/figures/21_xgboost-feature-importance.png){#fig-xgb-vip}
+
 ## Model Selection
 We compared the three models on the validation set using J-index, sensitivity, and accuracy (@fig-metrics).
 
-{#fig-metrics}
+![Validation Set Metrics by Model](results/figures/22_validation-metrics-comparison.png){#fig-metrics}
 
 Inspecting the confusion matrices in @fig-cms, we can evaluate how each model handled false positives and false negatives.
 
-{#fig-cms}
+![Confusion Matrices on Validation Set](results/figures/23_validation-confusion-matrices.png){#fig-cms}
 
-Based on the highest J-Index, the r val_metrics |> filter(.metric == "j_index") |> arrange(desc(.estimate)) |> slice(1) |> pull(model) model was selected as the best performing architecture.
+Based on the highest J-Index, the **`r val_metrics |> filter(.metric == "j_index") |> arrange(desc(.estimate)) |> slice(1) |> pull(model)`** model was selected as the best performing architecture.
 
 # Final Evaluation
-The best model was evaluated on the held-out test set. It achieved a final J-index of r test_metrics |> filter(.metric == "j_index") |> pull(.estimate) |> round(4).
+The best model was evaluated on the held-out test set. It achieved a final J-index of **`r test_metrics |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`**.
 
-{#fig-final-cm}
+![Final Model Confusion Matrix on Test Set](results/figures/24_final-model-test-confusion.png){#fig-final-cm}
 
 # Discussion
 
