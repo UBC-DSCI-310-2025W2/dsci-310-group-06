@@ -4,3 +4,6 @@ data/*
 .Rproj.user
 .Rhistory
 .Rprofile
+.DS_Store
+.ipynb_checkpoints/
+.Rhistory
