@@ -7,8 +7,13 @@ RUN apt-get update && \
     libxml2-dev \
     libfontconfig1-dev \
     libfreetype6-dev \
-    libglpk-dev \
     libpng-dev \
+    libtiff5-dev \
+    libjpeg-dev \
+    libharfbuzz-dev \
+    libfribidi-dev \
+    libwebp-dev \
+    libglpk-dev \
     libx11-dev \
     libzmq3-dev \
     build-essential && \
