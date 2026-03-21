@@ -533,3 +533,51 @@ grid.arrange(
   )
 )
 dev.off()
+
+heartdisease_residence <- stroke_training %>%
+  count(residence_type, heart_disease, stroke) %>%
+  group_by(residence_type, heart_disease) %>%
+  mutate(percentage = n / sum(n)) %>%
+  ungroup() %>%
+  ggplot(aes(x = residence_type, y = percentage, fill = stroke)) +
+  geom_col() +
+  facet_wrap(~ heart_disease) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(
+    title = "A. Heart disease",
+    x = "Type of residence",
+    y = "Percentage",
+    fill = "Stroke"
+  ) +
+  plot_theme +
+  theme(legend.position = "none")
+
+hypertension_residence <- stroke_training %>%
+  count(residence_type, hypertension, stroke) %>%
+  group_by(residence_type, hypertension) %>%
+  mutate(percentage = n / sum(n)) %>%
+  ungroup() %>%
+  ggplot(aes(x = residence_type, y = percentage, fill = stroke)) +
+  geom_col() +
+  facet_wrap(~ hypertension) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  labs(
+    title = "B. Hypertension",
+    x = "Type of residence",
+    y = "Percentage",
+    fill = "Stroke"
+  ) +
+  plot_theme
+
+png("results/figures/19_stroke-percentages-by-residence-heart-disease-hypertension.png",
+    width = 15, height = 6, units = "in", res = 150)
+grid.arrange(
+  heartdisease_residence,
+  hypertension_residence,
+  ncol = 2,
+  top = textGrob(
+    "Figure 19. Stroke percentages by residence, heart disease, and hypertension",
+    gp = gpar(fontsize = 12)
+  )
+)
+dev.off()
