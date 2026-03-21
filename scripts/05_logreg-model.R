@@ -128,6 +128,6 @@ logr_confusion <- logr_val_predictions |>
   conf_mat(truth = stroke, estimate = .pred_class)
 
 write_csv(
-  tidy(logr_confusion),
+  as_tibble(logr_confusion$table),
   "results/tables/09_logreg-confusion-matrix.csv"
 )

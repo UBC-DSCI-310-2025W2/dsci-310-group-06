@@ -150,6 +150,6 @@ xgb_confusion <- xgb_val_predictions |>
   conf_mat(truth = stroke, estimate = .pred_class)
 
 write_csv(
-  tidy(xgb_confusion),
+  as_tibble(xgb_confusion$table),
   "results/tables/12_xgboost-confusion-matrix.csv"
 )

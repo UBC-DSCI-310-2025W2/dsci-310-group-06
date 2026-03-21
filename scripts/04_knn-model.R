@@ -137,4 +137,4 @@ write_csv(knn_model_metrics, "results/tables/04_knn-validation-metrics.csv")
 knn_confusion <- knn_stroke_predictions |>
   conf_mat(truth = stroke, estimate = .pred_class)
 
-write_csv(tidy(knn_confusion), "results/tables/05_knn-confusion-matrix.csv")
+write_csv(as_tibble(knn_confusion$table), "results/tables/05_knn-confusion-matrix.csv")
