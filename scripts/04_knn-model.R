@@ -127,7 +127,7 @@ knn_stroke_predictions <- predict(knn_stroke_fit, stroke_validation) |>
   bind_cols(stroke_validation)
 
 knn_model_metrics <- knn_stroke_predictions |>
-  metric_set(accuracy, kap, j_index)(
+  metric_set(accuracy, sensitivity, j_index)(
     truth    = stroke,
     estimate = .pred_class
   )
