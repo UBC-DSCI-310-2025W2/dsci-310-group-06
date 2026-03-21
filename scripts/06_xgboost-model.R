@@ -129,6 +129,9 @@ xgb_fit <- xgb_wf |>
   finalize_workflow(best_xgb_params) |>
   fit(data = stroke_training)
 
+dir.create("results/models", recursive = TRUE, showWarnings = FALSE)
+saveRDS(xgb_fit, "results/models/xgb_fit.rds")
+
 xgb_val_predictions <- predict(xgb_fit, stroke_validation) |>
   bind_cols(stroke_validation)
 

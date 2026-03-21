@@ -107,6 +107,9 @@ logr_fit <- workflow() |>
   add_model(logr_final_spec) |>
   fit(data = stroke_training)
 
+dir.create("results/models", recursive = TRUE, showWarnings = FALSE)
+saveRDS(logr_fit, "results/models/logr_fit.rds")
+
 logr_val_predictions <- predict(logr_fit, stroke_validation) |>
   bind_cols(stroke_validation)
 

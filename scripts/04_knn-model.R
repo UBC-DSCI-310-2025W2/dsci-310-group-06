@@ -120,6 +120,9 @@ knn_stroke_fit <- workflow() |>
   add_recipe(stroke_recipe) |>
   fit(data = stroke_training)
 
+dir.create("results/models", recursive = TRUE, showWarnings = FALSE)
+saveRDS(knn_stroke_fit, "results/models/knn_fit.rds")
+
 knn_stroke_predictions <- predict(knn_stroke_fit, stroke_validation) |>
   bind_cols(stroke_validation)
 
