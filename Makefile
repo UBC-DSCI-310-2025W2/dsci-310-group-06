@@ -1,14 +1,9 @@
-# Usage:
-# make all    -> runs full analysis
-# make clean  -> removes generated files
+.PHONY: all clean
 
-.PHONY: all clean report
+all: analysis.html
 
-all: report
-
-report:
+analysis.html: analysis.Rmd
 	Rscript -e "rmarkdown::render('analysis.Rmd')"
 
 clean:
 	rm -f analysis.html
-	rm -rf data/*
