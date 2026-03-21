@@ -79,9 +79,9 @@ risk factor of stroke in both developing and developed nations
 Our research question explores the ability to accurately predict the
 likelihood of a stroke in a patient given a set of clinical features.
 Utilizing the Stroke Prediction Dataset, which comprises
-`r nrow(read_csv("data/processed/stroke_training.csv") + read_csv("data/processed/stroke_validation.csv") + read_csv("data/processed/stroke_testing.csv"))`
-observations, we aim to identify patterns among these features and aid
-in the development of prevention strategies.
+`r nrow(read_csv("data/processed/stroke_training.csv")) + nrow(read_csv("data/processed/stroke_validation.csv")) + nrow(read_csv("data/processed/stroke_testing.csv"))`
+observations..., we aim to identify patterns among these features and
+aid in the development of prevention strategies.
 
 # Methods and Results
 
@@ -103,20 +103,23 @@ stroke_summary %>%
 The `id` feature was removed as it has no biological impact on stroke
 occurrence. We employed `ggpairs` to identify correlations (@fig-pairs).
 
-![Pairwise relationships among selected stroke predictors](results/figures/01_ggpairs-plot.png){#fig-pairs}
+![Pairwise relationships among selected stroke
+predictors](results/figures/01_ggpairs-plot.png){#fig-pairs}
 
 ## Demographic and Clinical Predictors
 
 As seen in @fig-gender, there was no significant difference between
 males and females in terms of the percentage of stroke cases.
 
-![Percentage of stroke cases by gender](results/figures/02_stroke-by-gender.png){#fig-gender}
+![Percentage of stroke cases by
+gender](results/figures/02_stroke-by-gender.png){#fig-gender}
 
 With regards to age (@fig-age), the proportion of stroke cases increases
 noticeably after age 50, suggesting it is one of the strongest
 predictors.
 
-![Proportion of stroke cases by age group](results/figures/03_stroke-by-age.png){#fig-age}
+![Proportion of stroke cases by age
+group](results/figures/03_stroke-by-age.png){#fig-age}
 
 Patients with hypertension (@fig-hypertension) and heart disease
 (@fig-heartdisease) are roughly twice as likely to have a stroke.
@@ -124,13 +127,15 @@ Patients with hypertension (@fig-hypertension) and heart disease
 ::: {layout-ncol="2"}
 ![Hypertension](results/figures/04_stroke-by-hypertension.png){#fig-hypertension}
 
-![Heart Disease](results/figures/05_stroke-by-heart-disease.png){#fig-heartdisease}
+![Heart
+Disease](results/figures/05_stroke-by-heart-disease.png){#fig-heartdisease}
 :::
 
 Conversely, there is no significant difference in likelihood for those
 residing in urban versus rural areas (@fig-residence).
 
-![Percentage of stroke cases by type of residence](results/figures/06_stroke-by-residence.png){#fig-residence}
+![Percentage of stroke cases by type of
+residence](results/figures/06_stroke-by-residence.png){#fig-residence}
 
 ## Metabolic Factors
 
@@ -138,7 +143,8 @@ Patients who experienced a stroke tend to have higher average glucose
 levels (@fig-glucose) and slightly higher BMI (@fig-bmi).
 
 ::: {layout-ncol="2"}
-![Average glucose level by stroke status](results/figures/07_glucose-by-stroke.png){#fig-glucose}
+![Average glucose level by stroke
+status](results/figures/07_glucose-by-stroke.png){#fig-glucose}
 
 ![BMI by stroke status](results/figures/08_bmi-by-stroke.png){#fig-bmi}
 :::
@@ -146,39 +152,52 @@ levels (@fig-glucose) and slightly higher BMI (@fig-bmi).
 # Building The Model
 
 ## Finalized Features
-We moved forward with the features defined in our preprocessing script. We excluded `id`, `ever_married`, and `work_type` as they were determined to be too broad or uninformative.
 
-##Model Comparison and Tuning
-We tuned three distinct models. For the ***kNN model***, we performed a coarse sweep of neighbors, finding that performance plateaus around $k=150$ (@fig-coarse-tuning).
-{#fig-coarse-tuning}
-
-For the XGBoost model, we utilized Bayesian optimization and analyzed feature importance. Age and average glucose level emerged as the most critical features (@fig-xgb-vip).
-{#fig-xgb-vip}
+We moved forward with the features defined in our preprocessing script.
+We excluded `id`, `ever_married`, and `work_type` as they were
+determined to be too broad or uninformative.
 
 ## Model Comparison and Tuning
-For the **kNN model**, we performed a coarse sweep of neighbors, finding that performance plateaus around $k=150$ (@fig-coarse-tuning).
 
-![J-Index vs # of Neighbours for kNN Model](results/figures/20_coarse-knn-k-sweep.png){#fig-coarse-tuning}
+For the **kNN model**, we performed a coarse sweep of neighbors, finding
+that performance plateaus around $k=150$ (@fig-coarse-tuning).
 
-For the **XGBoost model**, we analyzed feature importance. Age and average glucose level emerged as the most critical features (@fig-xgb-vip).
+![J-Index vs \# of Neighbours for kNN
+Model](results/figures/20_coarse-knn-k-sweep.png){#fig-coarse-tuning}
 
-![XGBoost Feature Importance](results/figures/21_xgboost-feature-importance.png){#fig-xgb-vip}
+For the **XGBoost model**, we analyzed feature importance. Age and
+average glucose level emerged as the most critical features
+(@fig-xgb-vip).
+
+![XGBoost Feature
+Importance](results/figures/21_xgboost-feature-importance.png){#fig-xgb-vip}
 
 ## Model Selection
-We compared the three models on the validation set using J-index, sensitivity, and accuracy (@fig-metrics).
 
-![Validation Set Metrics by Model](results/figures/22_validation-metrics-comparison.png){#fig-metrics}
+We compared the three models on the validation set using J-index,
+sensitivity, and accuracy (@fig-metrics).
 
-Inspecting the confusion matrices in @fig-cms, we can evaluate how each model handled false positives and false negatives.
+![Validation Set Metrics by
+Model](results/figures/22_validation-metrics-comparison.png){#fig-metrics}
 
-![Confusion Matrices on Validation Set](results/figures/23_validation-confusion-matrices.png){#fig-cms}
+Inspecting the confusion matrices in @fig-cms, we can evaluate how each
+model handled false positives and false negatives.
 
-Based on the highest J-Index, the **`r val_metrics |> filter(.metric == "j_index") |> arrange(desc(.estimate)) |> slice(1) |> pull(model)`** model was selected as the best performing architecture.
+![Confusion Matrices on Validation
+Set](results/figures/23_validation-confusion-matrices.png){#fig-cms}
+
+Based on the highest J-Index, the
+**`r val_metrics |> filter(.metric == "j_index") |> arrange(desc(.estimate)) |> slice(1) |> pull(model)`**
+model was selected as the best performing architecture.
 
 # Final Evaluation
-The best model was evaluated on the held-out test set. It achieved a final J-index of **`r test_metrics |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`**.
 
-![Final Model Confusion Matrix on Test Set](results/figures/24_final-model-test-confusion.png){#fig-final-cm}
+The best model was evaluated on the held-out test set. It achieved a
+final J-index of
+**`r test_metrics |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`**.
+
+![Final Model Confusion Matrix on Test
+Set](results/figures/24_final-model-test-confusion.png){#fig-final-cm}
 
 # Discussion
 
