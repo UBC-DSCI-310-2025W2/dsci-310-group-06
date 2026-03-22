@@ -1,0 +1,5 @@
+.metric,.estimator,.estimate,model
+j_index,binary,0.5022742040285899,XGBoost
+sensitivity,binary,0.7654320987654321,XGBoost
+specificity,binary,0.7368421052631579,XGBoost
+accuracy,binary,0.7638483965014577,XGBoost

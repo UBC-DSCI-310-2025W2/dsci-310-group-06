@@ -1,0 +1,2 @@
+trees,min_n,tree_depth,learn_rate,loss_reduction,sample_size,.metric,.estimator,mean,n,std_err,.config,.iter
+145,32,5,0.0011866684795506163,0.002586844802542088,0.5050170232791221,j_index,binary,0.4968741794463657,5,0.013069387379401116,iter13,13
