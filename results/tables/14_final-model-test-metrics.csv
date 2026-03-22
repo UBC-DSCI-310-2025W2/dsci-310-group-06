@@ -1,5 +1,5 @@
 .metric,.estimator,.estimate,model
-j_index,binary,0.5022742040285899,XGBoost
-sensitivity,binary,0.7654320987654321,XGBoost
-specificity,binary,0.7368421052631579,XGBoost
-accuracy,binary,0.7638483965014577,XGBoost
+j_index,binary,0.43161094224924,Logistic Regression
+sensitivity,binary,0.7173252279635258,Logistic Regression
+specificity,binary,0.7142857142857143,Logistic Regression
+accuracy,binary,0.717201166180758,Logistic Regression

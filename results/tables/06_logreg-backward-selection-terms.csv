@@ -1,6 +1,7 @@
 term
 age
 avg_glucose_level
+bmi
 hypertension_Yes
 heart_disease_Yes
 smoking_status_Smokes

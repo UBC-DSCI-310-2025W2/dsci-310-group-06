@@ -5,8 +5,8 @@ all: analysis/stroke_risk_prediction.html
 analysis/stroke_risk_prediction.html: analysis/stroke_risk_prediction.qmd results
 	quarto render analysis/stroke_risk_prediction.qmd
 
-results: data/processed
-	mkdir -p results
+results:
+	mkdir -p data/processed results results/figures results/tables results/models
 	bash scripts/01_download-data.bash
 	Rscript scripts/02_preprocess-data.R
 	Rscript scripts/03_eda-plots.R
@@ -19,3 +19,4 @@ clean:
 	rm -rf data/processed
 	rm -rf results
 	rm -f analysis/stroke_risk_prediction.html
+	rm -rf analysis/stroke_risk_prediction_files

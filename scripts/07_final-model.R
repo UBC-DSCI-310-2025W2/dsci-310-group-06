@@ -55,7 +55,7 @@ metrics_plot <- all_val_metrics |>
   geom_col(position = position_dodge(width = 0.7), width = 0.6) +
   scale_fill_brewer(palette = "Set2") +
   labs(
-    title = "Figure 22. Validation Set Metrics by Model",
+    title = "Figure 11. Validation Set Metrics by Model",
     x     = "Metric",
     y     = "Estimate",
     fill  = "Model"
@@ -96,7 +96,7 @@ confusion_grid <- gridExtra::arrangeGrob(
   knn_cm_plot, logr_cm_plot, xgb_cm_plot,
   ncol = 3,
   top  = grid::textGrob(
-    "Figure 23. Confusion Matrices on Validation Set",
+    "Figure 12. Confusion Matrices on Validation Set",
     gp = grid::gpar(fontsize = 11)
   )
 )
@@ -146,7 +146,7 @@ write_csv(
 
 # Figure 24: Final model test set confusion matrix
 final_cm_plot <- autoplot(final_test_confusion, type = "heatmap") +
-  labs(title = paste0("Figure 24. ", best_model_name, " Confusion Matrix on Test Set")) +
+  labs(title = paste0("Figure 13. ", best_model_name, " Confusion Matrix on Test Set")) +
   plot_theme
 
 ggsave(
