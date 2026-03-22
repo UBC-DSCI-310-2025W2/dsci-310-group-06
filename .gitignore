@@ -7,3 +7,5 @@ data/*
 .DS_Store
 .ipynb_checkpoints/
 .Rhistory
+.RData
+Rplots.pdf
