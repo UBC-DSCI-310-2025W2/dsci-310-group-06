@@ -1,10 +1,10 @@
 .metric,.estimator,.estimate,model
-accuracy,binary,0.6578947368421053,kNN
-sensitivity,binary,0.647239263803681,kNN
-j_index,binary,0.522239263803681,kNN
-j_index,binary,0.5149539877300615,Logistic Regression
-sensitivity,binary,0.7024539877300614,Logistic Regression
-accuracy,binary,0.7076023391812866,Logistic Regression
-j_index,binary,0.5732361963190185,XGBoost
-sensitivity,binary,0.7607361963190185,XGBoost
-accuracy,binary,0.7631578947368421,XGBoost
+accuracy,binary,0.6754385964912281,kNN
+sensitivity,binary,0.6861538461538461,kNN
+j_index,binary,0.1567420814479639,kNN
+j_index,binary,0.3609049773755655,Logistic Regression
+sensitivity,binary,0.7138461538461538,Logistic Regression
+accuracy,binary,0.7105263157894737,Logistic Regression
+j_index,binary,0.34352941176470586,XGBoost
+sensitivity,binary,0.52,XGBoost
+accuracy,binary,0.5350877192982456,XGBoost

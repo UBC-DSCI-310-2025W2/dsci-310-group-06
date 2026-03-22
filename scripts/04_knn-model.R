@@ -62,7 +62,7 @@ coarse_n_neighbors_plot <- coarse_knn_cv_sweep_results |>
   ggplot(aes(x = neighbors, y = mean)) +
   geom_line() +
   labs(
-    title = "Figure 20. J-Index vs # of Neighbours for kNN Model",
+    title = "J-Index vs # of Neighbours for kNN Model",
     x     = "# of Neighbours",
     y     = "Mean J-Index"
   ) +

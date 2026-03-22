@@ -133,7 +133,7 @@ plot_pairs <- ggpairs(
   diag    = list(continuous = wrap("densityDiag", alpha = 0.5))
 ) +
   labs(
-    title = "Figure 1. Pairwise relationships among selected stroke predictors",
+    title = "Pairwise relationships among selected stroke predictors",
     color = "Stroke"
   ) +
   theme_bw(base_size = 10) +
@@ -163,7 +163,7 @@ stroke_gender <- stroke_training |>
     x     = "Gender",
     y     = "Percentage",
     fill  = "Stroke",
-    title = "Figure 2. Percentage of stroke cases by gender"
+    title = "Percentage of stroke cases by gender"
   ) +
   plot_theme
 
@@ -180,7 +180,7 @@ stroke_age <- stroke_training |>
     x     = "Age",
     y     = "Proportion",
     fill  = "Stroke",
-    title = "Figure 3. Proportion of stroke cases by age group"
+    title = "Proportion of stroke cases by age group"
   ) +
   plot_theme
 
@@ -200,7 +200,7 @@ stroke_hypertension <- stroke_training |>
     x     = "Hypertension",
     y     = "Percentage",
     fill  = "Stroke",
-    title = "Figure 4. Percentage of stroke cases by hypertension"
+    title = "Percentage of stroke cases by hypertension"
   ) +
   plot_theme
 
@@ -220,7 +220,7 @@ stroke_heart_disease <- stroke_training |>
     x     = "Heart disease",
     y     = "Percentage",
     fill  = "Stroke",
-    title = "Figure 5. Percentage of stroke cases by heart disease"
+    title = "Percentage of stroke cases by heart disease"
   ) +
   plot_theme
 
@@ -240,7 +240,7 @@ stroke_residence <- stroke_training |>
     x     = "Type of residence",
     y     = "Percentage",
     fill  = "Stroke",
-    title = "Figure 6. Percentage of stroke cases by type of residence"
+    title = "Percentage of stroke cases by type of residence"
   ) +
   plot_theme
 
@@ -256,7 +256,7 @@ stroke_avg_glucose_level <- stroke_training |>
     x     = "Stroke",
     y     = "Average glucose level",
     fill  = "Stroke",
-    title = "Figure 7. Average glucose level by stroke status"
+    title = "Average glucose level by stroke status"
   ) +
   plot_theme +
   theme(legend.position = "none")
@@ -273,7 +273,7 @@ stroke_bmi <- stroke_training |>
     x     = "Stroke",
     y     = "BMI",
     fill  = "Stroke",
-    title = "Figure 8. BMI by stroke status"
+    title = "BMI by stroke status"
   ) +
   plot_theme +
   theme(legend.position = "none")
@@ -294,7 +294,7 @@ stroke_smoking_status <- stroke_training |>
     x     = "Smoking status",
     y     = "Percentage",
     fill  = "Stroke",
-    title = "Figure 9. Percentage of stroke cases by smoking status"
+    title = "Percentage of stroke cases by smoking status"
   ) +
   plot_theme +
   theme(axis.text.x = element_text(angle = 20, hjust = 1))
@@ -315,7 +315,7 @@ stroke_worktype_plot <- stroke_training |>
     x     = "Type of work",
     y     = "Percentage",
     fill  = "Stroke",
-    title = "Figure 10. Percentage of stroke cases by work type"
+    title = "Percentage of stroke cases by work type"
   ) +
   plot_theme +
   theme(axis.text.x = element_text(angle = 20, hjust = 1))
@@ -334,7 +334,7 @@ stroke_age_gender <- stroke_training |>
     x     = "Age",
     y     = "Proportion",
     fill  = "Stroke",
-    title = "Figure 11. Proportion of stroke cases by age group and gender"
+    title = "Proportion of stroke cases by age group and gender"
   ) +
   plot_theme
 
@@ -352,7 +352,7 @@ stroke_age_smoking <- stroke_training |>
     x     = "Age",
     y     = "Proportion",
     fill  = "Stroke",
-    title = "Figure 12. Proportion of stroke cases by age group and smoking status"
+    title = "Proportion of stroke cases by age group and smoking status"
   ) +
   plot_theme
 
@@ -378,7 +378,7 @@ heartdisease_hypertension_plot <- ggplot(
     x     = "Hypertension",
     y     = "Percentage",
     fill  = "Stroke",
-    title = "Figure 13. Percentage of stroke cases by hypertension and heart disease"
+    title = "Percentage of stroke cases by hypertension and heart disease"
   ) +
   plot_theme
 
@@ -401,7 +401,7 @@ stroke_gender_plot <- heartdisease_gender |>
     x     = "Heart disease",
     y     = "Percentage",
     fill  = "Stroke",
-    title = "Figure 14. Percentage of stroke cases by gender and heart disease"
+    title = "Percentage of stroke cases by gender and heart disease"
   ) +
   plot_theme
 
@@ -417,7 +417,7 @@ age_bmi <- stroke_training |>
     x     = "Age",
     y     = "BMI",
     color = "Stroke",
-    title = "Figure 15. Stroke cases by age and BMI"
+    title = "Stroke cases by age and BMI"
   ) +
   plot_theme +
   scale_color_manual(
@@ -436,7 +436,7 @@ glucose_bmi <- stroke_training |>
     x     = "BMI",
     y     = "Average glucose level",
     color = "Stroke",
-    title = "Figure 16. Stroke cases by average glucose level and BMI"
+    title = "Stroke cases by average glucose level and BMI"
   ) +
   plot_theme +
   scale_color_manual(
@@ -484,7 +484,7 @@ grid.arrange(
   glucose_heartdisease,
   ncol = 2,
   top  = textGrob(
-    "Figure 17. Stroke cases by glucose level with hypertension and heart disease",
+    "Stroke cases by glucose level with hypertension and heart disease",
     gp = gpar(fontsize = 12)
   )
 )
@@ -528,7 +528,7 @@ grid.arrange(
   residence_hypertension,
   ncol = 2,
   top  = textGrob(
-    "Figure 18. Stroke cases by residence type with heart disease and hypertension",
+    "Stroke cases by residence type with heart disease and hypertension",
     gp = gpar(fontsize = 12)
   )
 )
@@ -576,7 +576,7 @@ grid.arrange(
   hypertension_residence,
   ncol = 2,
   top = textGrob(
-    "Figure 19. Stroke percentages by residence, heart disease, and hypertension",
+    "Stroke percentages by residence, heart disease, and hypertension",
     gp = gpar(fontsize = 12)
   )
 )
