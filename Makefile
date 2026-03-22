@@ -1,12 +1,3 @@
-.PHONY: all clean
-
-all: analysis/stroke_risk_prediction.html
-
-analysis/stroke_risk_prediction.html: analysis/stroke_risk_prediction.qmd results
-	quarto render analysis/stroke_risk_prediction.qmd
-
-results: data/processed
-	mkdir -p results
 .PHONY: clean all
 
 all: results/figures/01_ggpairs-plot.png \
