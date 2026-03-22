@@ -2,7 +2,7 @@
 
 all: analysis/stroke_risk_prediction.html
 
-analysis/stroke_risk_prediction.html: results
+analysis/stroke_risk_prediction.html: analysis/stroke_risk_prediction.qmd results
 	quarto render analysis/stroke_risk_prediction.qmd
 
 results: data/processed
@@ -18,4 +18,4 @@ results: data/processed
 clean:
 	rm -rf data/processed
 	rm -rf results
-	rm -f analysis/stroke_risk_prediction.html 
+	rm -f analysis/stroke_risk_prediction.html
