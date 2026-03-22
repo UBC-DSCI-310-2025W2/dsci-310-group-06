@@ -1,4 +1,4 @@
 .metric,.estimator,.estimate
-accuracy,binary,0.6578947368421053
-sensitivity,binary,0.647239263803681
-j_index,binary,0.522239263803681
+accuracy,binary,0.6754385964912281
+sensitivity,binary,0.6861538461538461
+j_index,binary,0.15674208144796387

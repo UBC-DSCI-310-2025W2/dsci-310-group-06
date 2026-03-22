@@ -55,7 +55,7 @@ plot_theme <- theme_bw(base_size = 11) +
 vip_plot <- xgb_fit_initial |>
   extract_fit_parsnip() |>
   vip(num_features = 15) +
-  labs(title = "Figure 21. XGBoost Feature Importance") +
+  labs(title = "XGBoost Feature Importance") +
   plot_theme
 
 ggsave(

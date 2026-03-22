@@ -30,10 +30,19 @@ library(knitr)
 library(kableExtra)
 
 # Load shared data artifacts for inline reporting
-stroke_training <- read_csv("data/processed/stroke_training.csv")
-stroke_summary  <- read_csv("results/tables/01_summary-stats.csv")
-val_metrics     <- read_csv("results/tables/13_all-validation-metrics.csv")
-test_metrics    <- read_csv("results/tables/14_final-model-test-metrics.csv")
+stroke          <- read_csv("../data/healthcare-dataset-stroke-data.csv")
+stroke_training <- read_csv("../data/processed/stroke_training.csv")
+stroke_summary  <- read_csv("../results/tables/01_summary-stats.csv")
+knn_coarse      <- read_csv("../results/tables/02_coarse-knn-cv-results.csv")
+knn_fine        <- read_csv("../results/tables/03_fine-knn-cv-results.csv")
+knn_val         <- read_csv("../results/tables/04_knn-validation-metrics.csv")
+logreg_terms    <- read_csv("../results/tables/06_logreg-backward-selection-terms.csv")
+logreg_params   <- read_csv("../results/tables/07_logreg-best-params.csv")
+logreg_val     <- read_csv("../results/tables/08_logreg-validation-metrics.csv")
+xgb_params      <- read_csv("../results/tables/10_xgboost-best-params.csv")
+xgb_val         <- read_csv("../results/tables/11_xgboost-validation-metrics.csv")
+val_metrics     <- read_csv("../results/tables/13_all-validation-metrics.csv")
+test_metrics    <- read_csv("../results/tables/14_final-model-test-metrics.csv")
 ```
 
 # Abstract
@@ -78,9 +87,8 @@ risk factor of stroke in both developing and developed nations
 
 Our research question explores the ability to accurately predict the
 likelihood of a stroke in a patient given a set of clinical features.
-Utilizing the Stroke Prediction Dataset, which comprises
-`r nrow(read_csv("data/processed/stroke_training.csv")) + nrow(read_csv("data/processed/stroke_validation.csv")) + nrow(read_csv("data/processed/stroke_testing.csv"))`
-observations..., we aim to identify patterns among these features and
+Utilizing the Stroke Prediction Dataset, which comprises of
+`r format(nrow(stroke), big.mark=",")`observations. We aim to identify patterns among these features and
 aid in the development of prevention strategies.
 
 # Methods and Results
@@ -104,7 +112,7 @@ The `id` feature was removed as it has no biological impact on stroke
 occurrence. We employed `ggpairs` to identify correlations (@fig-pairs).
 
 ![Pairwise relationships among selected stroke
-predictors](results/figures/01_ggpairs-plot.png){#fig-pairs}
+predictors](../results/figures/01_ggpairs-plot.png){#fig-pairs}
 
 ## Demographic and Clinical Predictors
 
@@ -112,30 +120,30 @@ As seen in @fig-gender, there was no significant difference between
 males and females in terms of the percentage of stroke cases.
 
 ![Percentage of stroke cases by
-gender](results/figures/02_stroke-by-gender.png){#fig-gender}
+gender](../results/figures/02_stroke-by-gender.png){#fig-gender}
 
 With regards to age (@fig-age), the proportion of stroke cases increases
 noticeably after age 50, suggesting it is one of the strongest
 predictors.
 
 ![Proportion of stroke cases by age
-group](results/figures/03_stroke-by-age.png){#fig-age}
+group](../results/figures/03_stroke-by-age.png){#fig-age}
 
 Patients with hypertension (@fig-hypertension) and heart disease
 (@fig-heartdisease) are roughly twice as likely to have a stroke.
 
 ::: {layout-ncol="2"}
-![Hypertension](results/figures/04_stroke-by-hypertension.png){#fig-hypertension}
+![Hypertension](../results/figures/04_stroke-by-hypertension.png){#fig-hypertension}
 
 ![Heart
-Disease](results/figures/05_stroke-by-heart-disease.png){#fig-heartdisease}
+Disease](../results/figures/05_stroke-by-heart-disease.png){#fig-heartdisease}
 :::
 
 Conversely, there is no significant difference in likelihood for those
 residing in urban versus rural areas (@fig-residence).
 
 ![Percentage of stroke cases by type of
-residence](results/figures/06_stroke-by-residence.png){#fig-residence}
+residence](../results/figures/06_stroke-by-residence.png){#fig-residence}
 
 ## Metabolic Factors
 
@@ -144,9 +152,9 @@ levels (@fig-glucose) and slightly higher BMI (@fig-bmi).
 
 ::: {layout-ncol="2"}
 ![Average glucose level by stroke
-status](results/figures/07_glucose-by-stroke.png){#fig-glucose}
+status](../results/figures/07_glucose-by-stroke.png){#fig-glucose}
 
-![BMI by stroke status](results/figures/08_bmi-by-stroke.png){#fig-bmi}
+![BMI by stroke status](../results/figures/08_bmi-by-stroke.png){#fig-bmi}
 :::
 
 # Building The Model
@@ -159,18 +167,31 @@ determined to be too broad or uninformative.
 
 ## Model Comparison and Tuning
 
-For the **kNN model**, we performed a coarse sweep of neighbors, finding
-that performance plateaus around $k=150$ (@fig-coarse-tuning).
+### kNN Model
+For the **kNN model**, we first performed a coarse sweep of neighbors from 0 to 200 stepping by 10. We found
+that performance was best at k=`r knn_coarse |> filter(.metric == "j_index") |> arrange(desc(mean)) |> head(n=1) |> pull(neighbors)` (@fig-coarse-tuning).
 
 ![J-Index vs \# of Neighbours for kNN
-Model](results/figures/20_coarse-knn-k-sweep.png){#fig-coarse-tuning}
+Model](../results/figures/20_coarse-knn-k-sweep.png){#fig-coarse-tuning}
 
+We then performed a finer sweep around the optimal k value, testing neighbors from `r knn_fine |> filter(.metric == "j_index") |> arrange(desc(mean)) |> head(n=1) |> pull(neighbors) - 10` to `r knn_fine |> filter(.metric == "j_index") |> arrange(desc(mean)) |> head(n=1) |> pull(neighbors) + 10` stepping by 1. The best performance was achieved at k=`r knn_fine |> filter(.metric == "j_index") |> arrange(desc(mean)) |> head(n=1) |> pull(neighbors)`.
+
+Evaluating the final kNN model on the validation set yielded a J-index of `r knn_val |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`.
+
+
+### Logistic Regression
+For the logistic regression model, we performed backwards selection to identify the most informative predictors. Age, average glucose level, and the presence of pre-existing heart disease emerged as the strongest predictors of stroke. We then tuned the penalty and mixture parameters for the final model, with the best performance achieved at a penalty of `r logreg_params |> filter(.metric == "j_index") |> arrange(desc(mean)) |> head(n=1) |> pull(penalty)` and a mixture of `r logreg_params |> filter(.metric == "j_index") |> arrange(desc(mean)) |> head(n=1) |> pull(mixture)`. Evaluating the final logistic regression model on the validation set yielded a J-index of `r logreg_val |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`.
+
+## XGBoost
 For the **XGBoost model**, we analyzed feature importance. Age and
 average glucose level emerged as the most critical features
 (@fig-xgb-vip).
 
 ![XGBoost Feature
-Importance](results/figures/21_xgboost-feature-importance.png){#fig-xgb-vip}
+Importance](../results/figures/21_xgboost-feature-importance.png){#fig-xgb-vip}
+
+We then perform hyperparameter tuning on several key parameters such as number of trees, tree depth, learning rate, and minimum number of observations in a node. The best performance was achieved with `r xgb_params |> pull(trees)` trees, a tree depth of `r xgb_params |> pull(tree_depth)`, a learning rate of `r xgb_params |> pull(learn_rate) |> round(4)`, and a minimum number of observations in a node of `r xgb_params |> pull(min_n)`. Evaluating the final XGBoost model on the validation set yielded a J-index of `r xgb_val |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`.
+
 
 ## Model Selection
 
@@ -178,13 +199,13 @@ We compared the three models on the validation set using J-index,
 sensitivity, and accuracy (@fig-metrics).
 
 ![Validation Set Metrics by
-Model](results/figures/22_validation-metrics-comparison.png){#fig-metrics}
+Model](../results/figures/22_validation-metrics-comparison.png){#fig-metrics}
 
 Inspecting the confusion matrices in @fig-cms, we can evaluate how each
 model handled false positives and false negatives.
 
 ![Confusion Matrices on Validation
-Set](results/figures/23_validation-confusion-matrices.png){#fig-cms}
+Set](../results/figures/23_validation-confusion-matrices.png){#fig-cms}
 
 Based on the highest J-Index, the
 **`r val_metrics |> filter(.metric == "j_index") |> arrange(desc(.estimate)) |> slice(1) |> pull(model)`**
@@ -197,7 +218,7 @@ final J-index of
 **`r test_metrics |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`**.
 
 ![Final Model Confusion Matrix on Test
-Set](results/figures/24_final-model-test-confusion.png){#fig-final-cm}
+Set](../results/figures/24_final-model-test-confusion.png){#fig-final-cm}
 
 # Discussion
 
