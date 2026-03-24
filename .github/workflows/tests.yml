@@ -1,5 +1,8 @@
 name: Run Tests
 
+env:
+  RENV_PATHS_ROOT: ~/.cache/R/renv
+
 on:
   workflow_dispatch:
   push:
@@ -10,8 +13,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      RENV_PATHS_LIBRARY: /home/runner/work/_temp/Library
 
     steps:
       - name: Checkout repo
@@ -42,10 +43,21 @@ jobs:
             build-essential
 
       - name: Install renv
-        run: Rscript -e "install.packages('renv', repos = 'https://cloud.r-project.org')"
+        uses: r-lib/actions/setup-renv@v2
 
-      - name: Restore renv packages
-        run: Rscript -e "renv::restore(prompt = FALSE)"
-
+      - name: Cache packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.RENV_PATHS_ROOT }}
+          key: ${{ runner.os }}-renv-${{ hashFiles('**/renv.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-renv-
+  
+      - name: Restore packages
+        shell: Rscript {0}
+        run: |
+          if (!requireNamespace("renv", quietly = TRUE)) install.packages("renv")
+          renv::restore()
+              
       - name: Run testthat tests
-        run: Rscript -e "testthat::test_dir('tests/testthat', stop_on_failure = TRUE)"
+        run: Rscript -e "source('renv/activate.R'); testthat::test_dir('tests/testthat', stop_on_failure = TRUE)"
