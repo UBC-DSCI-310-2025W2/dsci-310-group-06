@@ -1,0 +1,22 @@
+name: Run Pipeline
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t dsci310group6:ci .
+
+      - name: Run make all
+        run: docker run --rm dsci310group6:ci bash -c "make all"
