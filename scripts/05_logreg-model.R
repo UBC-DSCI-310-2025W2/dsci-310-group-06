@@ -1,4 +1,5 @@
 source("renv/activate.R")
+source("scripts/functions/evaluate_model.R")
 
 library(tidyverse)
 library(tidymodels)
@@ -113,21 +114,8 @@ saveRDS(logr_fit, "results/models/logr_fit.rds")
 logr_val_predictions <- predict(logr_fit, stroke_validation) |>
   bind_cols(stroke_validation)
 
-logr_val_metrics <- logr_val_predictions |>
-  metric_set(j_index, sensitivity, accuracy)(
-    truth    = stroke,
-    estimate = .pred_class
-  )
-
-write_csv(
-  logr_val_metrics,
-  "results/tables/08_logreg-validation-metrics.csv"
-)
-
-logr_confusion <- logr_val_predictions |>
-  conf_mat(truth = stroke, estimate = .pred_class)
-
-write_csv(
-  as_tibble(logr_confusion$table),
-  "results/tables/09_logreg-confusion-matrix.csv"
+evaluate_model(
+  predictions         = logr_val_predictions,
+  metric_save_path    = "results/tables/08_logreg-validation-metrics.csv",
+  confusion_save_path = "results/tables/09_logreg-confusion-matrix.csv"
 )

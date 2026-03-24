@@ -1,4 +1,5 @@
 source("renv/activate.R")
+source("scripts/functions/evaluate_model.R")
 
 library(tidyverse)
 library(tidymodels)
@@ -135,21 +136,8 @@ saveRDS(xgb_fit, "results/models/xgb_fit.rds")
 xgb_val_predictions <- predict(xgb_fit, stroke_validation) |>
   bind_cols(stroke_validation)
 
-xgb_val_metrics <- xgb_val_predictions |>
-  metric_set(j_index, sensitivity, accuracy)(
-    truth    = stroke,
-    estimate = .pred_class
-  )
-
-write_csv(
-  xgb_val_metrics,
-  "results/tables/11_xgboost-validation-metrics.csv"
-)
-
-xgb_confusion <- xgb_val_predictions |>
-  conf_mat(truth = stroke, estimate = .pred_class)
-
-write_csv(
-  as_tibble(xgb_confusion$table),
-  "results/tables/12_xgboost-confusion-matrix.csv"
+evaluate_model(
+  predictions         = xgb_val_predictions,
+  metric_save_path    = "results/tables/11_xgboost-validation-metrics.csv",
+  confusion_save_path = "results/tables/12_xgboost-confusion-matrix.csv"
 )
