@@ -42,8 +42,5 @@ jobs:
       - name: Install renv
         run: Rscript -e "install.packages('renv', repos = 'https://cloud.r-project.org')"
 
-      - name: Restore packages
-        run: Rscript -e "renv::restore(prompt = FALSE)"
-
       - name: Run testthat tests
-        run: Rscript -e "source('renv/activate.R'); testthat::test_dir('tests/testthat', stop_on_failure = TRUE)"
+        run: Rscript -e "renv::restore(prompt = FALSE); testthat::test_dir('tests/testthat', stop_on_failure = TRUE)"
