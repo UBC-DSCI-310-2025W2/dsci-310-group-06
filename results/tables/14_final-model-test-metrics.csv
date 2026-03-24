@@ -1,5 +1,0 @@
-.metric,.estimator,.estimate,model
-j_index,binary,0.567944673622907,Logistic Regression
-sensitivity,binary,0.7602523659305994,Logistic Regression
-specificity,binary,0.8076923076923077,Logistic Regression
-accuracy,binary,0.7638483965014577,Logistic Regression
