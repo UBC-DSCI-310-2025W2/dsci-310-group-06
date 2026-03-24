@@ -1,4 +1,5 @@
 source("renv/activate.R")
+source("scripts/functions/evaluate_model.R")
 
 library(tidyverse)
 library(tidymodels)
@@ -126,15 +127,8 @@ saveRDS(knn_stroke_fit, "results/models/knn_fit.rds")
 knn_stroke_predictions <- predict(knn_stroke_fit, stroke_validation) |>
   bind_cols(stroke_validation)
 
-knn_model_metrics <- knn_stroke_predictions |>
-  metric_set(accuracy, sensitivity, j_index)(
-    truth    = stroke,
-    estimate = .pred_class
-  )
-
-write_csv(knn_model_metrics, "results/tables/04_knn-validation-metrics.csv")
-
-knn_confusion <- knn_stroke_predictions |>
-  conf_mat(truth = stroke, estimate = .pred_class)
-
-write_csv(as_tibble(knn_confusion$table), "results/tables/05_knn-confusion-matrix.csv")
+evaluate_model(
+  predictions         = knn_stroke_predictions,
+  metric_save_path    = "results/tables/04_knn-validation-metrics.csv",
+  confusion_save_path = "results/tables/05_knn-confusion-matrix.csv"
+)

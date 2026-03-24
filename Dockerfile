@@ -32,4 +32,6 @@ RUN mkdir -p /root/.R && \
 
 RUN R -e "renv::restore()"
 
+RUN quarto install tinytex --update-path
+
 EXPOSE 8787

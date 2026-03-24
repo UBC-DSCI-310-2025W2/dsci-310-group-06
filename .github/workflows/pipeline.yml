@@ -19,11 +19,18 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Build Docker image
-        run: docker build -t dsci310group6:ci .
+      - name: Cache Docker image
+        id: cache-docker
+        uses: actions/cache@v4
+        with:
+          path: image.tar.gz
+          key: docker-${{ hashFiles('Dockerfile', 'renv.lock') }}
 
-      - name: Save Docker image
-        run: docker save dsci310group6:ci | gzip > image.tar.gz
+      - name: Build and save Docker image
+        if: steps.cache-docker.outputs.cache-hit != 'true'
+        run: |
+          docker build -t dsci310group6:ci .
+          docker save dsci310group6:ci | gzip > image.tar.gz
 
       - name: Upload image artifact
         uses: actions/upload-artifact@v4
