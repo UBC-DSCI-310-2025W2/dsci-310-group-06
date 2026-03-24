@@ -10,6 +10,10 @@ on:
 env:
   RENV_PATHS_ROOT: ~/.cache/R/renv
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
