@@ -34,7 +34,9 @@ jobs:
             libwebp-dev \
             libglpk-dev \
             libzmq3-dev \
-            build-essential
+            build-essential \
+            libx11-dev \
+            pandoc
 
       - name: Set up R
         uses: r-lib/actions/setup-r@v2
