@@ -10,6 +10,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      RENV_PATHS_LIBRARY: /home/runner/work/_temp/Library
 
     steps:
       - name: Checkout repo
@@ -42,5 +44,8 @@ jobs:
       - name: Install renv
         run: Rscript -e "install.packages('renv', repos = 'https://cloud.r-project.org')"
 
+      - name: Restore renv packages
+        run: Rscript -e "renv::restore(prompt = FALSE)"
+
       - name: Run testthat tests
-        run: Rscript -e "renv::restore(prompt = FALSE); testthat::test_dir('tests/testthat', stop_on_failure = TRUE)"
+        run: Rscript -e "testthat::test_dir('tests/testthat', stop_on_failure = TRUE)"
