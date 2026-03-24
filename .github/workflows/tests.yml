@@ -57,4 +57,4 @@ jobs:
       - name: Run testthat tests
         shell: Rscript {0}
         run: |
-          testthat::test_dir('tests/testthat', stop_on_failure = TRUE)
+          testthat::test_dir('scripts/tests/testthat', stop_on_failure = TRUE)
