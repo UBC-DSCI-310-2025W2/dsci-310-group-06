@@ -2,18 +2,47 @@ library(testthat)
 library(dplyr)
 library(readr)
 
-source(here::here("scripts", "functions", "load_stroke_data.R"))
+# Load the function we are testing
+source("scripts/functions/load_stroke_data.R")
 
-# Test 1: function loads data correctly
+# Helper function: creates a small valid stroke dataset and writes to CSV
+make_stroke_csv <- function(path) {
+  test_data <- tibble::tibble(
+    id = 1:3,
+    gender = c("Male", "Female", "Other"),
+    age = c(67, 45, 30),
+    hypertension = c(1, 0, 0),
+    heart_disease = c(0, 1, 0),
+    ever_married = c("Yes", "No", "No"),
+    work_type = c("Private", "Self-employed", "children"),
+    Residence_type = c("Urban", "Rural", "Urban"),
+    avg_glucose_level = c(228.69, 105.92, 95.12),
+    bmi = c("36.6", "N/A", "22.4"),
+    smoking_status = c("formerly smoked", "never smoked", "Unknown"),
+    stroke = c(1, 0, 0)
+  )
+
+  readr::write_csv(test_data, path)
+}
+
+# Test 1: Function loads data and returns a tibble
 test_that("load_stroke_data() loads dataset and returns tibble", {
-  data <- load_stroke_data(here::here("data", "healthcare-dataset-stroke-data.csv"))
+  tmp_file <- tempfile(fileext = ".csv")
+  on.exit(unlink(tmp_file))  # clean up temp file after test
+
+  make_stroke_csv(tmp_file)
+  data <- load_stroke_data(tmp_file)
 
   expect_s3_class(data, "tbl_df")
 })
 
-# Test 2: required columns exist
+# Test 2: All required columns are present
 test_that("load_stroke_data() contains all required columns", {
-  data <- load_stroke_data(here::here("data", "healthcare-dataset-stroke-data.csv"))
+  tmp_file <- tempfile(fileext = ".csv")
+  on.exit(unlink(tmp_file))
+
+  make_stroke_csv(tmp_file)
+  data <- load_stroke_data(tmp_file)
 
   required_cols <- c(
     "id",
@@ -33,9 +62,13 @@ test_that("load_stroke_data() contains all required columns", {
   expect_true(all(required_cols %in% names(data)))
 })
 
-# Test 3: categorical variables are factors
+# Test 3: Categorical variables are converted to factors
 test_that("load_stroke_data() converts categorical columns to factors", {
-  data <- load_stroke_data(here::here("data", "healthcare-dataset-stroke-data.csv"))
+  tmp_file <- tempfile(fileext = ".csv")
+  on.exit(unlink(tmp_file))
+
+  make_stroke_csv(tmp_file)
+  data <- load_stroke_data(tmp_file)
 
   expect_true(is.factor(data$gender))
   expect_true(is.factor(data$hypertension))
@@ -47,7 +80,7 @@ test_that("load_stroke_data() converts categorical columns to factors", {
   expect_true(is.factor(data$stroke))
 })
 
-# Test 4: error if file does not exist
+# Test 4: Function throws error if file does not exist
 test_that("load_stroke_data() errors when file does not exist", {
   expect_error(
     load_stroke_data("data/does_not_exist.csv"),
@@ -55,11 +88,12 @@ test_that("load_stroke_data() errors when file does not exist", {
   )
 })
 
-# Test 5: error if required columns missing
+# Test 5: Function throws error if required columns are missing
 test_that("load_stroke_data() errors when required columns are missing", {
   tmp_file <- tempfile(fileext = ".csv")
   on.exit(unlink(tmp_file))
 
+  # Create an invalid dataset missing required columns
   bad_data <- tibble::tibble(
     id = 1:3,
     gender = c("Male", "Female", "Male"),
