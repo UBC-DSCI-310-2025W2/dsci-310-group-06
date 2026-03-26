@@ -3,7 +3,7 @@ library(dplyr)
 library(readr)
 
 # Load the function we are testing
-source("scripts/functions/load_stroke_data.R")
+source(here::here("scripts", "functions", "load_stroke_data.R"))
 
 # Helper function: creates a small valid stroke dataset and writes to CSV
 make_stroke_csv <- function(path) {
