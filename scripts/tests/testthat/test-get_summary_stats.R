@@ -1,7 +1,7 @@
 library(testthat)
 library(dplyr)
 
-source("../functions/get_summary_stats.R")
+source("../../functions/get_summary_stats.R")
 
 test_that("get_summary_stats works correctly", {
   df <- data.frame(category = c("A", "A", "B"))
