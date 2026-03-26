@@ -14,8 +14,13 @@ plot_confusion_matrix <- function(confusion_save_path, title) {
   # 1. Load the data
   cm_data <- readr::read_csv(confusion_save_path, show_col_types = FALSE)
   
-  # 2. Assign Matrix Labels (TP, FP, FN, TN)
-  # Assuming 1 is 'Stroke' (Positive) and 0 is 'No Stroke' (Negative)
+  # 2. Safety Check
+  required_cols <- c("Prediction", "Truth", "n")
+  if (!all(required_cols %in% names(cm_data))) {
+    stop("CSV must contain 'Prediction', 'Truth', and 'n' columns.")
+  }
+  
+  # 3. Labeling logic
   cm_labeled <- cm_data |>
     dplyr::mutate(label_type = dplyr::case_when(
       Prediction == "1" & Truth == "1" ~ "TP",
@@ -23,10 +28,9 @@ plot_confusion_matrix <- function(confusion_save_path, title) {
       Prediction == "0" & Truth == "1" ~ "FN",
       Prediction == "0" & Truth == "0" ~ "TN"
     )) |>
-    # Combine the label and the count (e.g., "TP: 45")
     dplyr::mutate(display_text = paste0(label_type, "\n", n))
   
-  # 3. Build the plot
+  # 4. Build the plot
   plot <- ggplot2::ggplot(cm_labeled, ggplot2::aes(x = Prediction, y = Truth)) +
     ggplot2::geom_tile(fill = "white", color = "black", linewidth = 1) +
     # Use the new display_text column for the labels

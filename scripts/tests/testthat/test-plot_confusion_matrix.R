@@ -42,7 +42,7 @@ test_that("plot_confusion_matrix() uses the provided title in the plot labels", 
 # --- Visual Mapping Tests ---
 
 # Test 1: plot uses correct aesthetic mapping for Prediction, Truth, and n
-test_that("plot_confusion_matrix() maps Prediction to x, Truth to y, and label to n", {
+test_that("plot_confusion_matrix() maps Prediction to x, Truth to y, and label to display_text", {
   tmp_cm <- tempfile(fileext = ".csv")
   on.exit(unlink(tmp_cm))
   make_dummy_cm_csv(tmp_cm)
@@ -52,9 +52,9 @@ test_that("plot_confusion_matrix() maps Prediction to x, Truth to y, and label t
   expect_equal(rlang::as_name(result$mapping$x), "Prediction")
   expect_equal(rlang::as_name(result$mapping$y), "Truth")
   
-  # Finding the n label inside the geom_text layer
+  # Look for "display_text" instead of "n"
   label_mapping <- rlang::as_name(result$layers[[2]]$mapping$label)
-  expect_equal(label_mapping, "n")
+  expect_equal(label_mapping, "display_text")
 })
 
 # --- Input Validation Tests ---
