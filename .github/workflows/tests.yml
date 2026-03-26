@@ -62,3 +62,14 @@ jobs:
         shell: Rscript {0}
         run: |
           testthat::test_dir('scripts/tests/testthat', stop_on_failure = TRUE)
+
+      - name: Check 100% test coverage
+        shell: Rscript {0}
+        run: |
+          if (!requireNamespace("covr", quietly = TRUE)) install.packages("covr")
+          source_files <- list.files("scripts/functions", pattern = "\\.R$", full.names = TRUE)
+          test_files   <- list.files("scripts/tests/testthat", pattern = "^test-.*\\.R$", full.names = TRUE)
+          cov <- covr::file_coverage(source_files, test_files)
+          pct <- covr::percent_coverage(cov)
+          message(sprintf("Coverage: %.1f%%", pct))
+          if (pct < 100) stop(sprintf("Coverage is %.1f%% — must be 100%%", pct))
