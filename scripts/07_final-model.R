@@ -1,4 +1,5 @@
 source("renv/activate.R")
+source("scripts/functions/evaluate_model.R")
 
 library(tidyverse)
 library(tidymodels)
@@ -127,24 +128,24 @@ best_fit <- readRDS(best_fit_path)
 final_test_predictions <- predict(best_fit, stroke_testing) |>
   bind_cols(stroke_testing)
 
-final_test_metrics <- final_test_predictions |>
-  metric_set(j_index, sensitivity, specificity, accuracy)(
-    truth    = stroke,
-    estimate = .pred_class
-  ) |>
+final_test_results <- evaluate_model(
+  predictions         = final_test_predictions,
+  metric_save_path    = "results/tables/14_final-model-test-metrics.csv",
+  confusion_save_path = "results/tables/15_final-model-test-confusion-matrix.csv"
+)
+
+final_test_metrics <- final_test_results$metrics |>
   mutate(model = best_model_name)
 
 write_csv(final_test_metrics, "results/tables/14_final-model-test-metrics.csv")
 
-final_test_confusion <- final_test_predictions |>
-  conf_mat(truth = stroke, estimate = .pred_class)
-
-write_csv(
-  as_tibble(final_test_confusion$table),
-  "results/tables/15_final-model-test-confusion-matrix.csv"
+# Figure 24: Final model test set confusion matrix
+final_test_confusion <- yardstick::conf_mat(
+  final_test_predictions,
+  truth    = stroke,
+  estimate = .pred_class
 )
 
-# Figure 24: Final model test set confusion matrix
 final_cm_plot <- autoplot(final_test_confusion, type = "heatmap") +
   labs(title = paste0(best_model_name, " Confusion Matrix on Test Set")) +
   plot_theme
