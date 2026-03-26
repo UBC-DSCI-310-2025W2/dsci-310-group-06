@@ -2,6 +2,7 @@ library(testthat)
 library(dplyr)
 library(recipes)
 library(themis)
+library(here)
 
 # Load the function we are testing
 source(here::here("scripts", "functions", "create_stroke_recipe.R"))
@@ -41,7 +42,7 @@ test_that("create_stroke_recipe() returns a recipe object", {
   expect_s3_class(result, "recipe")
 })
 
-# Test 2: recipe includes step_smote when smote = TRUE
+# Test 2: recipe includes SMOTE when smote = TRUE
 test_that("create_stroke_recipe() includes SMOTE when smote is TRUE", {
   training_data <- make_training_data()
 
@@ -56,11 +57,11 @@ test_that("create_stroke_recipe() includes SMOTE when smote is TRUE", {
     smote = TRUE
   )
 
-  step_classes <- vapply(result$steps, class, character(1))
-  expect_true("step_smote" %in% step_classes)
+  step_classes <- lapply(result$steps, class)
+  expect_true(any(vapply(step_classes, function(x) "step_smote" %in% x, logical(1))))
 })
 
-# Test 3: recipe does not include step_smote when smote = FALSE
+# Test 3: recipe does not include SMOTE when smote = FALSE
 test_that("create_stroke_recipe() does not include SMOTE when smote is FALSE", {
   training_data <- make_training_data()
 
@@ -75,8 +76,8 @@ test_that("create_stroke_recipe() does not include SMOTE when smote is FALSE", {
     smote = FALSE
   )
 
-  step_classes <- vapply(result$steps, class, character(1))
-  expect_false("step_smote" %in% step_classes)
+  step_classes <- lapply(result$steps, class)
+  expect_false(any(vapply(step_classes, function(x) "step_smote" %in% x, logical(1))))
 })
 
 # Test 4: recipe includes standard preprocessing steps
@@ -94,11 +95,11 @@ test_that("create_stroke_recipe() includes expected preprocessing steps", {
     smote = FALSE
   )
 
-  step_classes <- vapply(result$steps, class, character(1))
+  step_classes <- lapply(result$steps, class)
 
-  expect_true("step_zv" %in% step_classes)
-  expect_true("step_dummy" %in% step_classes)
-  expect_true("step_normalize" %in% step_classes)
+  expect_true(any(vapply(step_classes, function(x) "step_zv" %in% x, logical(1))))
+  expect_true(any(vapply(step_classes, function(x) "step_dummy" %in% x, logical(1))))
+  expect_true(any(vapply(step_classes, function(x) "step_normalize" %in% x, logical(1))))
 })
 
 # Test 5: error if training_data is not a data frame
