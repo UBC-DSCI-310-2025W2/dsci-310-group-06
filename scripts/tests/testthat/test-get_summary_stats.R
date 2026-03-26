@@ -1,13 +1,13 @@
 library(testthat)
 library(dplyr)
 
-source("scripts/functions/get_summary_stats.R")
+source("../functions/get_summary_stats.R")
 
 test_that("get_summary_stats works correctly", {
   df <- data.frame(category = c("A", "A", "B"))
-  
+
   result <- get_summary_stats(df, "category")
-  
+
   expect_true(nrow(result) == 2)
 })
 
