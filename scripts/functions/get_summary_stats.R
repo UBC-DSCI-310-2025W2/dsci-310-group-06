@@ -15,6 +15,8 @@
 #'
 #' @export
 
+library(dplyr) 
+
 get_summary_stats <- function(df, column, coerce.char = FALSE, new.key = column) {
   
   if (!is.data.frame(df)) {
