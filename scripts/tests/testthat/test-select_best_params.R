@@ -18,5 +18,6 @@ test_that("select_best_params works correctly", {
 test_that("select_best_params errors on bad input", {
   expect_error(select_best_params("not_df"))
   expect_error(select_best_params(data.frame(no_metric = 1)))
+  expect_error(select_best_params(data.frame(.metric = c("j_index"), no_mean = 1)))
   expect_error(select_best_params(data.frame(.metric = "accuracy", mean = 0.5)))
 })
