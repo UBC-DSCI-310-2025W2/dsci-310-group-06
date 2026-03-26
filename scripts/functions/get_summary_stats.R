@@ -1,11 +1,18 @@
-#' Get summary statistics for a categorical variable
+#' Get summary statistics for a categorical column
+#'
+#' Computes counts of each unique value in a specified column of a data frame.
 #'
 #' @param df A data frame
-#' @param column Column name (string)
+#' @param column A column name (string)
 #' @param coerce.char Logical, whether to convert column to character
 #' @param new.key Name for the output column
 #'
 #' @return A data frame with counts for each category
+#'
+#' @examples
+#' df <- data.frame(category = c("A", "A", "B"))
+#' get_summary_stats(df, "category")
+#'
 #' @export
 
 get_summary_stats <- function(df, column, coerce.char = FALSE, new.key = column) {
