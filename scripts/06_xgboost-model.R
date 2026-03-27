@@ -141,3 +141,15 @@ evaluate_model(
   metric_save_path    = "results/tables/11_xgboost-validation-metrics.csv",
   confusion_save_path = "results/tables/12_xgboost-confusion-matrix.csv"
 )
+
+xgboost_cm_plot <- plot_confusion_matrix(
+  confusion_save_path = "results/tables/11_xgboost-confusion-matrix.csv",
+  title               = "XGBoost Confusion Matrix (Validation Set)"
+)
+
+ggplot2::ggsave(
+  filename = "results/figures/23_xgboost-confusion-matrix.png",
+  plot     = xgboost_cm_plot,
+  width    = 6,
+  height   = 6
+)
