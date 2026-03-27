@@ -79,7 +79,7 @@ logr_cm_plot <- plot_confusion_matrix(
 )
 
 xgb_cm_plot <- plot_confusion_matrix(
-  "results/tables/11_xgboost-confusion-matrix.csv", "XGBoost" 
+  "results/tables/12_xgboost-confusion-matrix.csv", "XGBoost" 
 )
 
 confusion_grid <- gridExtra::arrangeGrob(
