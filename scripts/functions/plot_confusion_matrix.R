@@ -20,13 +20,18 @@ plot_confusion_matrix <- function(confusion_save_path, title) {
     stop("CSV must contain 'Prediction', 'Truth', and 'n' columns.")
   }
   
-  # 3. Labeling logic
+  # 3. Updated Labeling logic
   cm_labeled <- cm_data |>
     dplyr::mutate(label_type = dplyr::case_when(
-      Prediction == "1" & Truth == "1" ~ "TP",
-      Prediction == "1" & Truth == "0" ~ "FP",
-      Prediction == "0" & Truth == "1" ~ "FN",
-      Prediction == "0" & Truth == "0" ~ "TN"
+      Prediction == "Yes" & Truth == "Yes" ~ "TP",
+      Prediction == "Yes" & Truth == "No"  ~ "FP",
+      Prediction == "No"  & Truth == "Yes" ~ "FN",
+      Prediction == "No"  & Truth == "No"  ~ "TN",
+      # Keep the old 1/0 logic just in case for other models
+      Prediction == "1"   & Truth == "1"   ~ "TP",
+      Prediction == "1"   & Truth == "0"   ~ "FP",
+      Prediction == "0"   & Truth == "1"   ~ "FN",
+      Prediction == "0"   & Truth == "0"   ~ "TN"
     )) |>
     dplyr::mutate(display_text = paste0(label_type, "\n", n))
   
