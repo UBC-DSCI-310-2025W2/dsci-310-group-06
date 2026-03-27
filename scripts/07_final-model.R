@@ -1,5 +1,6 @@
 source("renv/activate.R")
 source("scripts/functions/evaluate_model.R")
+source("scripts/functions/select_best_params.R")
 
 library(tidyverse)
 library(tidymodels)
@@ -97,9 +98,8 @@ ggplot2::ggsave(
 
 # Select best model
 best_model_name <- all_val_metrics |>
-  filter(.metric == "j_index") |>
-  arrange(desc(.estimate)) |>
-  slice(1) |>
+  rename(mean = .estimate) |>
+  select_best_params() |>
   pull(model)
 
 best_fit_path <- list(

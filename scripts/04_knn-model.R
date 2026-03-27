@@ -1,6 +1,8 @@
 source("renv/activate.R")
 source("scripts/functions/evaluate_model.R")
 source("scripts/functions/plot_confusion_matrix.R")
+source("scripts/functions/select_best_params.R") 
+
 
 library(tidyverse)
 library(tidymodels)
@@ -78,10 +80,7 @@ ggsave(
 )
 
 # Fine sweep
-best_coarse_k <- coarse_knn_cv_sweep_results |>
-  filter(.metric == "j_index") |>
-  arrange(desc(mean)) |>
-  slice(1) |>
+best_coarse_k <- select_best_params(coarse_knn_cv_sweep_results) |>
   pull(neighbors)
 
 fine_knn_k_vals <- tibble(
@@ -103,10 +102,7 @@ write_csv(
   "results/tables/03_fine-knn-cv-results.csv"
 )
 
-best_k <- fine_knn_cv_sweep_results |>
-  filter(.metric == "j_index") |>
-  arrange(desc(mean)) |>
-  slice(1) |>
+best_k <- select_best_params(fine_knn_cv_sweep_results) |>
   pull(neighbors)
 
 # Final model

@@ -1,4 +1,5 @@
 source("renv/activate.R")
+source("scripts/functions/get_summary_stats.R")
 
 library(tidyverse)
 library(tidymodels)
@@ -36,58 +37,33 @@ plot_theme <- theme_bw(base_size = 11) +
     strip.text    = element_text(size = 9)
   )
 
-# Table 01: Summary stats
 
-stroke_married_stats <- stroke_training |>
-  group_by(ever_married) |>
-  summarise(value = n()) |>
-  rename("key" = "ever_married") |>
-  mutate(column_name = "ever_married")
+# Table 01: Summary stats using function
 
-stroke_work_stats <- stroke_training |>
-  group_by(work_type) |>
-  summarise(value = n()) |>
-  rename("key" = "work_type") |>
-  mutate(column_name = "work_type")
+stroke_married_stats <- get_summary_stats(stroke_training, "ever_married")
 
-stroke_gender_stats <- stroke_training |>
-  group_by(gender) |>
-  summarise(value = n()) |>
-  rename("key" = "gender") |>
-  mutate(column_name = "gender")
+stroke_work_stats <- get_summary_stats(stroke_training, "work_type")
 
-stroke_residence_type_stats <- stroke_training |>
-  group_by(residence_type) |>
-  summarise(value = n()) |>
-  rename("key" = "residence_type") |>
-  mutate(column_name = "residence_type")
+stroke_gender_stats <- get_summary_stats(stroke_training, "gender")
 
-stroke_smoking_status_stats <- stroke_training |>
-  group_by(smoking_status) |>
-  summarise(value = n()) |>
-  rename("key" = "smoking_status") |>
-  mutate(column_name = "smoking_status")
+stroke_residence_type_stats <- get_summary_stats(stroke_training, "residence_type")
 
-stroke_hypertension_stats <- stroke_training |>
-  group_by(hypertension) |>
-  summarise(value = n()) |>
-  mutate(hypertension = as.character(hypertension)) |>
-  rename("key" = "hypertension") |>
-  mutate(column_name = "hypertension")
+stroke_smoking_status_stats <- get_summary_stats(stroke_training, "smoking_status")
 
-stroke_heart_disease_stats <- stroke_training |>
-  group_by(heart_disease) |>
-  summarise(value = n()) |>
-  mutate(heart_disease = as.character(heart_disease)) |>
-  rename("key" = "heart_disease") |>
-  mutate(column_name = "heart_disease")
+stroke_hypertension_stats <- get_summary_stats(
+  stroke_training, "hypertension",
+  coerce.char = TRUE,
+  new.key = "hypertension")
 
-stroke_stroke_stats <- stroke_training |>
-  group_by(stroke) |>
-  summarise(value = n()) |>
-  mutate(stroke = as.character(stroke)) |>
-  rename("key" = "stroke") |>
-  mutate(column_name = "stroke")
+stroke_heart_disease_stats <- get_summary_stats(
+  stroke_training, "heart_disease",
+  coerce.char = TRUE,
+  new.key = "heart_disease")
+
+stroke_stroke_stats <- get_summary_stats(
+  stroke_training, "stroke",
+  coerce.char = TRUE,
+  new.key = "stroke")
 
 # Numeric vars
 stroke_numeric_cols_summary <- stroke_training |>

@@ -1,7 +1,7 @@
 source("renv/activate.R")
 source("scripts/functions/evaluate_model.R")
 source("scripts/functions/plot_confusion_matrix.R")
-
+source("scripts/functions/select_best_params.R")
 
 library(tidyverse)
 library(tidymodels)
@@ -87,10 +87,7 @@ logr_cv_results <- workflow() |>
   ) |>
   collect_metrics()
 
-best_logr_params <- logr_cv_results |>
-  filter(.metric == "j_index") |>
-  arrange(desc(mean)) |>
-  slice(1)
+best_logr_params <- select_best_params(logr_cv_results)
 
 write_csv(
   best_logr_params,
@@ -134,3 +131,4 @@ ggplot2::ggsave(
   width    = 6,
   height   = 6
 )
+
