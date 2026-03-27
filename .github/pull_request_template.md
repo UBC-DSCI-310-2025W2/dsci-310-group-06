@@ -2,17 +2,9 @@
 
 ## Description
 
-This PR implements the plot_confusion_matrix function as specified in Task #30. This function completes the evaluation pipeline by taking the tidied CSV output from evaluate_model (#29) and generating a standardized, square-format confusion matrix plot using ggplot2.
+Please include a summary of the change and which issue is fixed. Please also include relevant motivation and context.
 
-Key Changes:
-
-Created plot_confusion_matrix.R in scripts/functions/.
-
-Implemented automated labeling for TP, FP, FN, and TN within the matrix cells to improve interpretability.
-
-Added a test in scripts/tests/testthat/test-plot_confusion_matrix.R.
-
-Ensured the function adheres to project standards by using explicit package::function() syntax (e.g., ggplot2::geom_tile, readr::read_csv).
+Fixes # (issue)
 
 ## Checklist:
 
