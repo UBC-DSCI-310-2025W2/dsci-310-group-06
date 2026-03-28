@@ -3,6 +3,27 @@ library(ggplot2)
 
 source(here::here("scripts", "functions", "set_plot_theme.R"))
 
+test_that("set_plot_theme errors if ggplot2 is unavailable", {
+  fn_env <- environment(set_plot_theme)
+  old_requireNamespace <- get("requireNamespace", envir = fn_env)
+
+  assign(
+    "requireNamespace",
+    function(package, quietly = TRUE) FALSE,
+    envir = fn_env
+  )
+
+  on.exit(
+    assign("requireNamespace", old_requireNamespace, envir = fn_env),
+    add = TRUE
+  )
+
+  expect_error(
+    set_plot_theme(),
+    "ggplot2 must be installed to set the plot theme."
+  )
+})
+
 test_that("set_plot_theme runs without error", {
   expect_no_error(set_plot_theme())
 })
