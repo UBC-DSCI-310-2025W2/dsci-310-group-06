@@ -7,6 +7,9 @@ library(GGally)
 library(scales)
 library(grid)
 
+source("scripts/functions/set_plot_theme.R")
+set_plot_theme()
+
 # Create directories
 if (!dir.exists("results/figures")) {
   dir.create("results/figures", recursive = TRUE)
@@ -21,20 +24,6 @@ stroke_training <- read_csv("data/processed/stroke_training.csv")
 
 # Remove id column from training set (not a predictor)
 stroke_training <- stroke_training |> select(-id)
-
-# Plot themeing
-
-plot_theme <- theme_bw(base_size = 11) +
-  theme(
-    plot.title    = element_text(hjust = 0.5, size = 12),
-    axis.text.x   = element_text(size = 9),
-    axis.text.y   = element_text(size = 9),
-    axis.title.x  = element_text(size = 10),
-    axis.title.y  = element_text(size = 10),
-    legend.title  = element_text(size = 10),
-    legend.text   = element_text(size = 9),
-    strip.text    = element_text(size = 9)
-  )
 
 # Table 01: Summary stats
 
@@ -164,8 +153,7 @@ stroke_gender <- stroke_training |>
     y     = "Percentage",
     fill  = "Stroke",
     title = "Percentage of stroke cases by gender"
-  ) +
-  plot_theme
+  )
 
 ggsave("results/figures/02_stroke-by-gender.png",
        plot = stroke_gender, width = 8, height = 5)
@@ -181,8 +169,7 @@ stroke_age <- stroke_training |>
     y     = "Proportion",
     fill  = "Stroke",
     title = "Proportion of stroke cases by age group"
-  ) +
-  plot_theme
+  )
 
 ggsave("results/figures/03_stroke-by-age.png",
        plot = stroke_age, width = 10, height = 6)
@@ -201,8 +188,7 @@ stroke_hypertension <- stroke_training |>
     y     = "Percentage",
     fill  = "Stroke",
     title = "Percentage of stroke cases by hypertension"
-  ) +
-  plot_theme
+  )
 
 ggsave("results/figures/04_stroke-by-hypertension.png",
        plot = stroke_hypertension, width = 8, height = 5)
@@ -221,8 +207,7 @@ stroke_heart_disease <- stroke_training |>
     y     = "Percentage",
     fill  = "Stroke",
     title = "Percentage of stroke cases by heart disease"
-  ) +
-  plot_theme
+  )
 
 ggsave("results/figures/05_stroke-by-heart-disease.png",
        plot = stroke_heart_disease, width = 8, height = 5)
@@ -241,8 +226,7 @@ stroke_residence <- stroke_training |>
     y     = "Percentage",
     fill  = "Stroke",
     title = "Percentage of stroke cases by type of residence"
-  ) +
-  plot_theme
+  )
 
 ggsave("results/figures/06_stroke-by-residence.png",
        plot = stroke_residence, width = 8, height = 5)
@@ -258,7 +242,6 @@ stroke_avg_glucose_level <- stroke_training |>
     fill  = "Stroke",
     title = "Average glucose level by stroke status"
   ) +
-  plot_theme +
   theme(legend.position = "none")
 
 ggsave("results/figures/07_glucose-by-stroke.png",
@@ -275,7 +258,6 @@ stroke_bmi <- stroke_training |>
     fill  = "Stroke",
     title = "BMI by stroke status"
   ) +
-  plot_theme +
   theme(legend.position = "none")
 
 ggsave("results/figures/08_bmi-by-stroke.png",
@@ -296,7 +278,6 @@ stroke_smoking_status <- stroke_training |>
     fill  = "Stroke",
     title = "Percentage of stroke cases by smoking status"
   ) +
-  plot_theme +
   theme(axis.text.x = element_text(angle = 20, hjust = 1))
 
 ggsave("results/figures/09_stroke-by-smoking.png",
@@ -317,7 +298,6 @@ stroke_worktype_plot <- stroke_training |>
     fill  = "Stroke",
     title = "Percentage of stroke cases by work type"
   ) +
-  plot_theme +
   theme(axis.text.x = element_text(angle = 20, hjust = 1))
 
 ggsave("results/figures/10_stroke-by-work-type.png",
@@ -335,8 +315,7 @@ stroke_age_gender <- stroke_training |>
     y     = "Proportion",
     fill  = "Stroke",
     title = "Proportion of stroke cases by age group and gender"
-  ) +
-  plot_theme
+  )
 
 ggsave("results/figures/11_stroke-by-age-gender.png",
        plot = stroke_age_gender, width = 14, height = 5)
@@ -353,8 +332,7 @@ stroke_age_smoking <- stroke_training |>
     y     = "Proportion",
     fill  = "Stroke",
     title = "Proportion of stroke cases by age group and smoking status"
-  ) +
-  plot_theme
+  )
 
 ggsave("results/figures/12_stroke-by-age-smoking.png",
        plot = stroke_age_smoking, width = 12, height = 6)
@@ -379,8 +357,7 @@ heartdisease_hypertension_plot <- ggplot(
     y     = "Percentage",
     fill  = "Stroke",
     title = "Percentage of stroke cases by hypertension and heart disease"
-  ) +
-  plot_theme
+  )
 
 ggsave("results/figures/13_stroke-by-hypertension-heart-disease.png",
        plot = heartdisease_hypertension_plot, width = 8, height = 6)
@@ -402,8 +379,7 @@ stroke_gender_plot <- heartdisease_gender |>
     y     = "Percentage",
     fill  = "Stroke",
     title = "Percentage of stroke cases by gender and heart disease"
-  ) +
-  plot_theme
+  )
 
 ggsave("results/figures/14_stroke-by-gender-heart-disease.png",
        plot = stroke_gender_plot, width = 10, height = 5)
@@ -419,7 +395,6 @@ age_bmi <- stroke_training |>
     color = "Stroke",
     title = "Stroke cases by age and BMI"
   ) +
-  plot_theme +
   scale_color_manual(
     values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.2, 1.0))
   )
@@ -438,7 +413,6 @@ glucose_bmi <- stroke_training |>
     color = "Stroke",
     title = "Stroke cases by average glucose level and BMI"
   ) +
-  plot_theme +
   scale_color_manual(
     values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.2, 1.0))
   )
@@ -457,7 +431,6 @@ glucose_hypertension <- stroke_training |>
     y     = "Hypertension",
     color = "Stroke"
   ) +
-  plot_theme +
   theme(legend.position = "none") +
   scale_color_manual(
     values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.2, 1.0))
@@ -472,7 +445,6 @@ glucose_heartdisease <- stroke_training |>
     y     = "Heart disease",
     color = "Stroke"
   ) +
-  plot_theme +
   scale_color_manual(
     values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.2, 1.0))
   )
@@ -501,7 +473,6 @@ residence_heartdisease <- stroke_training |>
     y     = "Heart disease",
     color = "Stroke"
   ) +
-  plot_theme +
   theme(legend.position = "none") +
   scale_color_manual(
     values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.2, 1.0))
@@ -516,7 +487,6 @@ residence_hypertension <- stroke_training |>
     y     = "Hypertension",
     color = "Stroke"
   ) +
-  plot_theme +
   scale_color_manual(
     values = alpha(c("No" = "#F8766D", "Yes" = "#00BFC4"), c(0.2, 1.0))
   )
@@ -549,7 +519,6 @@ heartdisease_residence <- stroke_training %>%
     y = "Percentage",
     fill = "Stroke"
   ) +
-  plot_theme +
   theme(legend.position = "none")
 
 hypertension_residence <- stroke_training %>%
@@ -566,8 +535,7 @@ hypertension_residence <- stroke_training %>%
     x = "Type of residence",
     y = "Percentage",
     fill = "Stroke"
-  ) +
-  plot_theme
+  )
 
 png("results/figures/19_stroke-percentages-by-residence-heart-disease-hypertension.png",
     width = 15, height = 6, units = "in", res = 150)
