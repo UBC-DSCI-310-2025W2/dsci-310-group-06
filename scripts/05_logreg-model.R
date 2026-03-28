@@ -1,5 +1,6 @@
 source("renv/activate.R")
 source("scripts/functions/evaluate_model.R")
+source("scripts/functions/plot_confusion_matrix.R")
 source("scripts/functions/select_best_params.R")
 
 library(tidyverse)
@@ -117,3 +118,17 @@ evaluate_model(
   metric_save_path    = "results/tables/08_logreg-validation-metrics.csv",
   confusion_save_path = "results/tables/09_logreg-confusion-matrix.csv"
 )
+
+#For confusion matrix plot
+logreg_cm_plot <- plot_confusion_matrix(
+  confusion_save_path = "results/tables/09_logreg-confusion-matrix.csv",
+  title               = "Logistic Regression Confusion Matrix (Validation Set)"
+)
+
+ggplot2::ggsave(
+  filename = "results/figures/22_logreg-confusion-matrix.png",
+  plot     = logreg_cm_plot,
+  width    = 6,
+  height   = 6
+)
+
