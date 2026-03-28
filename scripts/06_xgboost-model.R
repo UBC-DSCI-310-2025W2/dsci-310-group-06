@@ -1,5 +1,6 @@
 source("renv/activate.R")
 source("scripts/functions/evaluate_model.R")
+source("scripts/functions/select_best_params.R")
 
 library(tidyverse)
 library(tidymodels)
@@ -115,9 +116,7 @@ xgb_bayes_results <- xgb_wf |>
 
 best_xgb_params <- xgb_bayes_results |>
   collect_metrics() |>
-  filter(.metric == "j_index") |>
-  arrange(desc(mean)) |>
-  slice(1)
+  select_best_params()
 
 write_csv(
   best_xgb_params,
