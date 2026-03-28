@@ -53,9 +53,11 @@ create_stroke_recipe <- function(training_data, response, predictors, smote) {
   )
 
   stroke_recipe <- recipes::recipe(recipe_formula, data = training_data) |>
-    recipes::step_zv(recipes::all_predictors()) |>
-    recipes::step_dummy(recipes::all_nominal_predictors()) |>
-    recipes::step_normalize(recipes::all_numeric_predictors())
+  recipes::step_zv(recipes::all_predictors()) |>
+  recipes::step_YeoJohnson(recipes::all_numeric_predictors()) |>
+  recipes::step_scale(recipes::all_numeric_predictors()) |>
+  recipes::step_center(recipes::all_numeric_predictors()) |>
+  recipes::step_dummy(recipes::all_nominal_predictors())
 
   if (smote) {
     stroke_recipe <- stroke_recipe |>
