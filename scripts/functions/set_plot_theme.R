@@ -16,14 +16,16 @@ set_plot_theme <- function() {
 
   plot_theme <- ggplot2::theme_bw(base_size = 11) +
     ggplot2::theme(
-      plot.title    = ggplot2::element_text(hjust = 0.5, size = 12),
-      axis.text.x   = ggplot2::element_text(size = 9),
-      axis.text.y   = ggplot2::element_text(size = 9),
-      axis.title.x  = ggplot2::element_text(size = 10),
-      axis.title.y  = ggplot2::element_text(size = 10),
-      legend.title  = ggplot2::element_text(size = 10),
-      legend.text   = ggplot2::element_text(size = 9),
-      strip.text    = ggplot2::element_text(size = 9)
+      plot.title   = ggplot2::element_text(hjust = 0.5, size = 12),
+      axis.text.x  = ggplot2::element_text(size = 9),
+      axis.text.y  = ggplot2::element_text(size = 9),
+      axis.title.x = ggplot2::element_text(size = 10),
+      axis.title.y = ggplot2::element_text(size = 10),
+      legend.title = ggplot2::element_text(size = 10),
+      legend.text  = ggplot2::element_text(size = 9),
+      strip.text   = ggplot2::element_text(size = 9),
+      plot.margin  = ggplot2::margin(10, 10, 10, 10),
+      panel.grid.minor = ggplot2::element_blank()
     )
 
   ggplot2::theme_set(plot_theme)
