@@ -26,7 +26,6 @@ stroke_training <- read_csv("data/processed/stroke_training.csv")
 # Remove id column from training set (not a predictor)
 stroke_training <- stroke_training |> select(-id)
 
-<<<<<<< HEAD
 # Table 01: Summary stats
 
 stroke_married_stats <- stroke_training |>
@@ -79,49 +78,6 @@ stroke_stroke_stats <- stroke_training |>
   mutate(stroke = as.character(stroke)) |>
   rename(key = stroke) |>
   mutate(column_name = "stroke")
-=======
-# Plot themeing
-
-plot_theme <- theme_bw(base_size = 11) +
-  theme(
-    plot.title    = element_text(hjust = 0.5, size = 12),
-    axis.text.x   = element_text(size = 9),
-    axis.text.y   = element_text(size = 9),
-    axis.title.x  = element_text(size = 10),
-    axis.title.y  = element_text(size = 10),
-    legend.title  = element_text(size = 10),
-    legend.text   = element_text(size = 9),
-    strip.text    = element_text(size = 9)
-  )
-
-
-# Table 01: Summary stats using function
-
-stroke_married_stats <- get_summary_stats(stroke_training, "ever_married")
-
-stroke_work_stats <- get_summary_stats(stroke_training, "work_type")
-
-stroke_gender_stats <- get_summary_stats(stroke_training, "gender")
-
-stroke_residence_type_stats <- get_summary_stats(stroke_training, "residence_type")
-
-stroke_smoking_status_stats <- get_summary_stats(stroke_training, "smoking_status")
-
-stroke_hypertension_stats <- get_summary_stats(
-  stroke_training, "hypertension",
-  coerce.char = TRUE,
-  new.key = "hypertension")
-
-stroke_heart_disease_stats <- get_summary_stats(
-  stroke_training, "heart_disease",
-  coerce.char = TRUE,
-  new.key = "heart_disease")
-
-stroke_stroke_stats <- get_summary_stats(
-  stroke_training, "stroke",
-  coerce.char = TRUE,
-  new.key = "stroke")
->>>>>>> 551aadd2c0c257574788106b2a34e7589059d129
 
 # Numeric vars
 stroke_numeric_cols_summary <- stroke_training |>
