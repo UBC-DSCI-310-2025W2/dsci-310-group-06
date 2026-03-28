@@ -1,6 +1,9 @@
 source("renv/activate.R")
 source("scripts/functions/evaluate_model.R")
 source("scripts/functions/select_best_params.R")
+source("scripts/functions/plot_confusion_matrix.R") 
+source("scripts/functions/set_plot_theme.R")
+set_plot_theme()
 
 library(tidyverse)
 library(tidymodels)
@@ -45,20 +48,10 @@ xgb_fit_initial <- workflow() |>
   add_model(xgb_spec_initial) |>
   fit(data = stroke_training)
 
-plot_theme <- theme_bw(base_size = 11) +
-  theme(
-    plot.title   = element_text(hjust = 0.5, size = 12),
-    axis.text.x  = element_text(size = 9),
-    axis.text.y  = element_text(size = 9),
-    axis.title.x = element_text(size = 10),
-    axis.title.y = element_text(size = 10)
-  )
-
 vip_plot <- xgb_fit_initial |>
   extract_fit_parsnip() |>
   vip(num_features = 15) +
-  labs(title = "XGBoost Feature Importance") +
-  plot_theme
+  labs(title = "XGBoost Feature Importance")
 
 ggsave(
   "results/figures/21_xgboost-feature-importance.png",
