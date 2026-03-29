@@ -82,3 +82,24 @@ test_that("plot_confusion_matrix() errors when the file path is invalid", {
     plot_confusion_matrix("nonexistent_path/cm_results.csv", "Title")
   )
 })
+
+# --- Edge Case Test ---
+
+test_that("plot_confusion_matrix() handles a CSV with zero rows (empty results)", {
+  tmp_cm <- tempfile(fileext = ".csv")
+  on.exit(unlink(tmp_cm))
+  
+  # Create a valid header but no data
+  tibble::tibble(
+    Prediction = character(),
+    Truth = character(),
+    n = numeric()
+  ) |> readr::write_csv(tmp_cm)
+  
+  # The function should still return a ggplot object without erroring
+  result <- plot_confusion_matrix(tmp_cm, "Empty Test")
+  
+  expect_s3_class(result, "ggplot")
+  # Check if the data inside the plot has 0 rows
+  expect_equal(nrow(result$data), 0)
+})
