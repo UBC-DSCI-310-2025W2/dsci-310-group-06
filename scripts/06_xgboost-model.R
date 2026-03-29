@@ -4,6 +4,7 @@ source("scripts/functions/select_best_params.R")
 source("scripts/functions/plot_confusion_matrix.R") 
 source("scripts/functions/set_plot_theme.R")
 set_plot_theme()
+source("scripts/functions/create_stroke_recipe.R")
 
 library(tidyverse)
 library(tidymodels)
@@ -28,16 +29,15 @@ stroke_validation <- read_csv("data/processed/stroke_validation.csv") |>
 
 # Feature importance via initial model
 
-xgb_recipe_full <- recipe(
-  stroke ~ gender + age + hypertension + heart_disease +
-    residence_type + avg_glucose_level + bmi + smoking_status,
-  data = stroke_training
-) |>
-  step_YeoJohnson(all_numeric_predictors()) |>
-  step_scale(all_numeric_predictors()) |>
-  step_center(all_numeric_predictors()) |>
-  step_dummy(all_nominal_predictors()) |>
-  step_smote(stroke)
+xgb_recipe_full <- create_stroke_recipe(
+  training_data = stroke_training,
+  response      = "stroke",
+  predictors    = c(
+    "gender", "age", "hypertension", "heart_disease",
+    "residence_type", "avg_glucose_level", "bmi", "smoking_status"
+  ),
+  smote = TRUE
+)
 
 xgb_spec_initial <- boost_tree(trees = 200) |>
   set_engine("xgboost") |>
@@ -62,16 +62,15 @@ ggsave(
 
 # Hyperparameter tuning
 
-xgb_recipe_selected <- recipe(
-  stroke ~ age + avg_glucose_level + bmi +
-    hypertension + heart_disease + smoking_status + residence_type,
-  data = stroke_training
-) |>
-  step_YeoJohnson(all_numeric_predictors()) |>
-  step_scale(all_numeric_predictors()) |>
-  step_center(all_numeric_predictors()) |>
-  step_dummy(all_nominal_predictors()) |>
-  step_smote(stroke)
+xgb_recipe_selected <- create_stroke_recipe(
+  training_data = stroke_training,
+  response      = "stroke",
+  predictors    = c(
+    "age", "avg_glucose_level", "bmi",
+    "hypertension", "heart_disease", "smoking_status", "residence_type"
+  ),
+  smote = TRUE
+)
 
 xgb_spec_tune <- boost_tree(
   trees          = tune(),

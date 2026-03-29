@@ -97,9 +97,9 @@ test_that("create_stroke_recipe() includes expected preprocessing steps", {
 
   step_classes <- lapply(result$steps, class)
 
-  expect_true(any(vapply(step_classes, function(x) "step_zv" %in% x, logical(1))))
-  expect_true(any(vapply(step_classes, function(x) "step_dummy" %in% x, logical(1))))
-  expect_true(any(vapply(step_classes, function(x) "step_normalize" %in% x, logical(1))))
+  expect_true(any(vapply(step_classes, function(x) "step_YeoJohnson" %in% x, logical(1))))
+  expect_true(any(vapply(step_classes, function(x) "step_scale" %in% x, logical(1))))
+  expect_true(any(vapply(step_classes, function(x) "step_center" %in% x, logical(1))))
 })
 
 # Test 5: error if training_data is not a data frame
