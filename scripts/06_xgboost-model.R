@@ -1,6 +1,8 @@
 source("renv/activate.R")
 source("scripts/functions/evaluate_model.R")
 source("scripts/functions/select_best_params.R")
+source("scripts/functions/plot_confusion_matrix.R")
+
 
 library(tidyverse)
 library(tidymodels)
@@ -61,7 +63,7 @@ vip_plot <- xgb_fit_initial |>
   plot_theme
 
 ggsave(
-  "results/figures/21_xgboost-feature-importance.png",
+  "results/figures/23_xgboost-feature-importance.png",
   plot   = vip_plot,
   width  = 8,
   height = 6
@@ -147,7 +149,7 @@ xgboost_cm_plot <- plot_confusion_matrix(
 )
 
 ggplot2::ggsave(
-  filename = "results/figures/23_xgboost-confusion-matrix.png",
+  filename = "results/figures/24_xgboost-confusion-matrix.png",
   plot     = xgboost_cm_plot,
   width    = 6,
   height   = 6
