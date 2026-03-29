@@ -107,3 +107,11 @@ test_that("load_stroke_data() errors when required columns are missing", {
     regexp = "missing required columns"
   )
 })
+
+# Test 6: Function throws error if data_path is not a character string
+test_that("load_stroke_data() errors when data_path is not a character string", {
+  expect_error(
+    load_stroke_data(123),
+    regexp = "`data_path` must be a single character string\\."
+  )
+})
