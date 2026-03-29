@@ -52,7 +52,11 @@ data/healthcare-dataset-stroke-data.csv:
 data/processed/stroke_training.csv \
 data/processed/stroke_validation.csv \
 data/processed/stroke_testing.csv &: data/healthcare-dataset-stroke-data.csv
-	Rscript scripts/02_preprocess-data.R
+	Rscript scripts/02_preprocess-data.R \
+		--input=data/healthcare-dataset-stroke-data.csv \
+		--out_training=data/processed/stroke_training.csv \
+		--out_validation=data/processed/stroke_validation.csv \
+		--out_testing=data/processed/stroke_testing.csv
 
 # 03 — EDA
 results/tables/01_summary-stats.csv \
@@ -75,7 +79,10 @@ results/figures/16_stroke-by-glucose-bmi.png \
 results/figures/17_stroke-by-glucose-hypertension-heart-disease.png \
 results/figures/18_stroke-by-residence-heart-disease-hypertension.png \
 results/figures/19_stroke-percentages-by-residence-heart-disease-hypertension.png &: data/processed/stroke_training.csv
-	Rscript scripts/03_eda-plots.R
+	Rscript scripts/03_eda-plots.R \
+		--input=data/processed/stroke_training.csv \
+		--out_figures_dir=results/figures \
+		--out_tables_dir=results/tables
 
 # 04 — kNN
 results/figures/20_coarse-knn-k-sweep.png \
@@ -85,7 +92,12 @@ results/tables/04_knn-validation-metrics.csv \
 results/tables/05_knn-confusion-matrix.csv \
 results/models/knn_fit.rds &: data/processed/stroke_training.csv \
 	data/processed/stroke_validation.csv
-	Rscript scripts/04_knn-model.R
+	Rscript scripts/04_knn-model.R \
+		--training=data/processed/stroke_training.csv \
+		--validation=data/processed/stroke_validation.csv \
+		--out_figures_dir=results/figures \
+		--out_tables_dir=results/tables \
+		--out_models_dir=results/models
 
 # 05 — Log reg
 results/tables/06_logreg-backward-selection-terms.csv \
@@ -94,7 +106,12 @@ results/tables/08_logreg-validation-metrics.csv \
 results/tables/09_logreg-confusion-matrix.csv \
 results/models/logr_fit.rds &: data/processed/stroke_training.csv \
 	data/processed/stroke_validation.csv
-	Rscript scripts/05_logreg-model.R
+	Rscript scripts/05_logreg-model.R \
+		--training=data/processed/stroke_training.csv \
+		--validation=data/processed/stroke_validation.csv \
+		--out_figures_dir=results/figures \
+		--out_tables_dir=results/tables \
+		--out_models_dir=results/models
 
 # 06 - XGBoost
 results/figures/21_xgboost-feature-importance.png \
@@ -103,7 +120,12 @@ results/tables/11_xgboost-validation-metrics.csv \
 results/tables/12_xgboost-confusion-matrix.csv \
 results/models/xgb_fit.rds &: data/processed/stroke_training.csv \
 	data/processed/stroke_validation.csv
-	Rscript scripts/06_xgboost-model.R
+	Rscript scripts/06_xgboost-model.R \
+		--training=data/processed/stroke_training.csv \
+		--validation=data/processed/stroke_validation.csv \
+		--out_figures_dir=results/figures \
+		--out_tables_dir=results/tables \
+		--out_models_dir=results/models
 
 # 07 - Final comparison
 results/figures/22_validation-metrics-comparison.png \
@@ -116,7 +138,19 @@ results/tables/15_final-model-test-confusion-matrix.csv &: \
 	results/models/logr_fit.rds \
 	results/models/xgb_fit.rds \
 	data/processed/stroke_testing.csv
-	Rscript scripts/07_final-model.R
+	Rscript scripts/07_final-model.R \
+		--testing=data/processed/stroke_testing.csv \
+		--knn_metrics=results/tables/04_knn-validation-metrics.csv \
+		--logreg_metrics=results/tables/08_logreg-validation-metrics.csv \
+		--xgb_metrics=results/tables/11_xgboost-validation-metrics.csv \
+		--knn_cm=results/tables/05_knn-confusion-matrix.csv \
+		--logreg_cm=results/tables/09_logreg-confusion-matrix.csv \
+		--xgb_cm=results/tables/12_xgboost-confusion-matrix.csv \
+		--knn_model=results/models/knn_fit.rds \
+		--logreg_model=results/models/logr_fit.rds \
+		--xgb_model=results/models/xgb_fit.rds \
+		--out_figures_dir=results/figures \
+		--out_tables_dir=results/tables
 
 # 08 - Quarto
 analysis/stroke_risk_prediction.pdf: \
