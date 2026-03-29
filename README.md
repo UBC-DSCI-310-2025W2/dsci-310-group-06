@@ -1,9 +1,3 @@
----
-editor_options: 
-  markdown: 
-    wrap: 72
----
-
 # DSCI 310 Group 6 - Stroke Risk Predictions
 
 # Contributors
