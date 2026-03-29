@@ -56,6 +56,10 @@ The project environment is managed via `renv`. The analysis requires **R (versio
 | `rmarkdown` | 2.30 | Rendering support |
 | `gridExtra` | 2.3 | Arranging multiple plots |
 | `vip` | 0.4.5 | Variable importance plots |
+| `kknn` | 1.4.1 | KNN model backend |
+| `finetune` | 1.2.1 | Hyperparameter tuning (race methods) |
+| `kableExtra` | 1.4.0 | Table formatting in report |
+| `docopt` | 0.7.2 | CLI argument parsing in scripts |
 
 # Licensing
 This project is offered under the Attribution 4.0 International (CC BY 4.0) License. The software provided in this project is offered under the MIT open source license. See [License](./LICENSE.md) for more information.
