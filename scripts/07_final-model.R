@@ -33,7 +33,7 @@ all_val_metrics <- bind_rows(
 
 write_csv(all_val_metrics, "results/tables/13_all-validation-metrics.csv")
 
-# Figure 22: Validation metrics comparison bar chart
+# Figure 25: Validation metrics comparison bar chart
 metrics_plot <- all_val_metrics |>
   mutate(
     .metric = recode(.metric,
@@ -55,13 +55,13 @@ metrics_plot <- all_val_metrics |>
   )
 
 ggsave(
-  "results/figures/22_validation-metrics-comparison.png",
+  "results/figures/25_validation-metrics-comparison.png",
   plot   = metrics_plot,
   width  = 8,
   height = 5
 )
 
-# Figure 24: Confusion matrices on validation set
+# Figure 26: Confusion matrices on validation set
 knn_cm_plot <- plot_confusion_matrix(
   "results/tables/05_knn-confusion-matrix.csv", "kNN"
 )
@@ -80,7 +80,7 @@ confusion_grid <- gridExtra::arrangeGrob(
 )
 
 ggplot2::ggsave(
-  filename = "results/figures/24_validation-confusion-matrices.png",
+  filename = "results/figures/26_validation-confusion-matrices.png",
   plot     = confusion_grid,
   width    = 12, # Wider to fit 3 plots side-by-side
   height   = 4
@@ -115,7 +115,7 @@ final_test_metrics <- final_test_results$metrics |>
 
 write_csv(final_test_metrics, "results/tables/14_final-model-test-metrics.csv")
 
-# Figure 25: Final model test set confusion matrix
+# Figure 27: Final model test set confusion matrix
 final_test_confusion <- yardstick::conf_mat(
   final_test_predictions,
   truth    = stroke,
@@ -128,7 +128,7 @@ final_cm_plot <- plot_confusion_matrix(
 )
 
 ggsave(
-  "results/figures/25_final-model-test-confusion.png",
+  "results/figures/27_final-model-test-confusion.png",
   plot   = final_cm_plot,
   width  = 6,
   height = 5
