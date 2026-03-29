@@ -66,33 +66,67 @@ data/healthcare-dataset-stroke-data.csv:
 data/processed/stroke_training.csv \
 data/processed/stroke_validation.csv \
 data/processed/stroke_testing.csv &: data/healthcare-dataset-stroke-data.csv
-	Rscript scripts/02_preprocess-data.R
+	Rscript scripts/02_preprocess-data.R \
+		--input=data/healthcare-dataset-stroke-data.csv \
+		--out_training=data/processed/stroke_training.csv \
+		--out_validation=data/processed/stroke_validation.csv \
+		--out_testing=data/processed/stroke_testing.csv
 
 # Create EDA Tables
 $(EDA_TABLES) $(EDA_FIGS) &: data/processed/stroke_training.csv
-	Rscript scripts/03_eda-plots.R
+	Rscript scripts/03_eda-plots.R \
+		--input=data/processed/stroke_training.csv \
+		--out_figures_dir=results/figures \
+		--out_tables_dir=results/tables
 
 # Run kNN comparison
 $(KNN_OUTS) &: data/processed/stroke_training.csv \
                data/processed/stroke_validation.csv
-	Rscript scripts/04_knn-model.R
+	Rscript scripts/04_knn-model.R \
+		--training=data/processed/stroke_training.csv \
+		--validation=data/processed/stroke_validation.csv \
+		--out_figures_dir=results/figures \
+		--out_tables_dir=results/tables \
+		--out_models_dir=results/models
 
 # Run LogReg comparison
 $(LOGREG_OUTS) &: data/processed/stroke_training.csv \
                   data/processed/stroke_validation.csv
-	Rscript scripts/05_logreg-model.R
+	Rscript scripts/05_logreg-model.R \
+		--training=data/processed/stroke_training.csv \
+		--validation=data/processed/stroke_validation.csv \
+		--out_figures_dir=results/figures \
+		--out_tables_dir=results/tables \
+		--out_models_dir=results/models
 
 # Run XGBoost comparison
 $(XGB_OUTS) &: data/processed/stroke_training.csv \
                data/processed/stroke_validation.csv
-	Rscript scripts/06_xgboost-model.R
+	Rscript scripts/06_xgboost-model.R \
+		--training=data/processed/stroke_training.csv \
+		--validation=data/processed/stroke_validation.csv \
+		--out_figures_dir=results/figures \
+		--out_tables_dir=results/tables \
+		--out_models_dir=results/models
 
 # Compare final models
 $(FINAL_OUTS) &: results/models/knn_fit.rds \
                  results/models/logr_fit.rds \
                  results/models/xgb_fit.rds \
                  data/processed/stroke_testing.csv
-	Rscript scripts/07_final-model.R
+	Rscript scripts/07_final-model.R \
+		--testing=data/processed/stroke_testing.csv \
+		--knn_metrics=results/tables/04_knn-validation-metrics.csv \
+		--logreg_metrics=results/tables/08_logreg-validation-metrics.csv \
+		--xgb_metrics=results/tables/11_xgboost-validation-metrics.csv \
+		--knn_cm=results/tables/05_knn-confusion-matrix.csv \
+		--logreg_cm=results/tables/09_logreg-confusion-matrix.csv \
+		--xgb_cm=results/tables/12_xgboost-confusion-matrix.csv \
+		--knn_model=results/models/knn_fit.rds \
+		--logreg_model=results/models/logr_fit.rds \
+		--xgb_model=results/models/xgb_fit.rds \
+		--out_figures_dir=results/figures \
+		--out_tables_dir=results/tables
 
 # Render report
 analysis/stroke_risk_prediction.pdf: $(EDA_TABLES) $(EDA_FIGS) \
