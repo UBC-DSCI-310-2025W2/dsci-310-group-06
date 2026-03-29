@@ -290,8 +290,8 @@ populations. Other areas that can be explored are specific aspects of
 the predictors explored in this analysis. For example, one of our
 predictors is BMI, which is shown to be linked to all-cause mortality.
 However, BMI does not differentiate between fat mass and muscle mass
-(Cheung et al, 2015). Considering muscle mass is inversely associated
-with mortality (Lee & Giovannucci, 2018), researchers may want to see to
+[@cheung2021]. Considering muscle mass is inversely associated
+with mortality [@lee2018], researchers may want to see to
 what degree does fat mass associate with all-cause mortality, and in our
 specific case, stroke.
 
