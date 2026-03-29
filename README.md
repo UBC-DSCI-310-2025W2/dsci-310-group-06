@@ -21,8 +21,6 @@ Please follow these steps to reproduce the analysis:
 
 ### 1. Run Docker Image
 
-### 1. Run Docker Image
-
 To build the image, run the following command in your terminal:
 `docker build -t navyasehgal/dsci310group6:latest .`
 
