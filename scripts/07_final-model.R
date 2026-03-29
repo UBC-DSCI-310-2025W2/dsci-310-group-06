@@ -2,7 +2,8 @@ source("renv/activate.R")
 source("scripts/functions/evaluate_model.R")
 source("scripts/functions/select_best_params.R")
 source("scripts/functions/plot_confusion_matrix.R")
-
+source("scripts/functions/set_plot_theme.R")
+set_plot_theme()
 
 library(tidyverse)
 library(tidymodels)
@@ -19,18 +20,6 @@ factor_cols <- c(
 
 stroke_testing <- read_csv("data/processed/stroke_testing.csv") |>
   mutate(across(all_of(factor_cols), factor))
-
-plot_theme <- theme_bw(base_size = 11) +
-  theme(
-    plot.title   = element_text(hjust = 0.5, size = 12),
-    axis.text.x  = element_text(size = 9),
-    axis.text.y  = element_text(size = 9),
-    axis.title.x = element_text(size = 10),
-    axis.title.y = element_text(size = 10),
-    legend.title = element_text(size = 10),
-    legend.text  = element_text(size = 9),
-    strip.text   = element_text(size = 9)
-  )
 
 # Load validation metric csvs
 all_val_metrics <- bind_rows(
@@ -63,8 +52,7 @@ metrics_plot <- all_val_metrics |>
     x     = "Metric",
     y     = "Estimate",
     fill  = "Model"
-  ) +
-  plot_theme
+  )
 
 ggsave(
   "results/figures/25_validation-metrics-comparison.png",
