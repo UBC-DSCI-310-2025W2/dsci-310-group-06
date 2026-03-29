@@ -1,5 +1,9 @@
 source("renv/activate.R")
 source("scripts/functions/evaluate_model.R")
+source("scripts/functions/select_best_params.R")
+source("scripts/functions/plot_confusion_matrix.R")
+source("scripts/functions/set_plot_theme.R")
+set_plot_theme()
 
 library(tidyverse)
 library(tidymodels)
@@ -16,18 +20,6 @@ factor_cols <- c(
 
 stroke_testing <- read_csv("data/processed/stroke_testing.csv") |>
   mutate(across(all_of(factor_cols), factor))
-
-plot_theme <- theme_bw(base_size = 11) +
-  theme(
-    plot.title   = element_text(hjust = 0.5, size = 12),
-    axis.text.x  = element_text(size = 9),
-    axis.text.y  = element_text(size = 9),
-    axis.title.x = element_text(size = 10),
-    axis.title.y = element_text(size = 10),
-    legend.title = element_text(size = 10),
-    legend.text  = element_text(size = 9),
-    strip.text   = element_text(size = 9)
-  )
 
 # Load validation metric csvs
 all_val_metrics <- bind_rows(
@@ -60,8 +52,7 @@ metrics_plot <- all_val_metrics |>
     x     = "Metric",
     y     = "Estimate",
     fill  = "Model"
-  ) +
-  plot_theme
+  )
 
 ggsave(
   "results/figures/22_validation-metrics-comparison.png",
@@ -70,50 +61,35 @@ ggsave(
   height = 5
 )
 
-# Figure 23: Confusion matrices on validation set
-make_cm_plot <- function(csv_path, title) {
-  read_csv(csv_path) |>
-    mutate(across(c(Prediction, Truth), factor)) |>
-    ggplot(aes(x = Prediction, y = Truth, fill = n)) +
-    geom_tile() +
-    geom_text(aes(label = n), size = 5) +
-    scale_fill_gradient(low = "white", high = "#4393C3") +
-    labs(title = title) +
-    plot_theme +
-    theme(legend.position = "none")
-}
-
-knn_cm_plot <- make_cm_plot(
+# Figure 24: Confusion matrices on validation set
+knn_cm_plot <- plot_confusion_matrix(
   "results/tables/05_knn-confusion-matrix.csv", "kNN"
 )
-logr_cm_plot <- make_cm_plot(
+logr_cm_plot <- plot_confusion_matrix(
   "results/tables/09_logreg-confusion-matrix.csv", "Logistic Regression"
 )
-xgb_cm_plot <- make_cm_plot(
-  "results/tables/12_xgboost-confusion-matrix.csv", "XGBoost"
+
+xgb_cm_plot <- plot_confusion_matrix(
+  "results/tables/12_xgboost-confusion-matrix.csv", "XGBoost" 
 )
 
 confusion_grid <- gridExtra::arrangeGrob(
   knn_cm_plot, logr_cm_plot, xgb_cm_plot,
   ncol = 3,
-  top  = grid::textGrob(
-    "Confusion Matrices on Validation Set",
-    gp = grid::gpar(fontsize = 11)
-  )
+  top  = grid::textGrob("Confusion Matrices on Validation Set", gp = grid::gpar(fontsize = 11))
 )
 
-ggsave(
-  "results/figures/23_validation-confusion-matrices.png",
-  plot   = confusion_grid,
-  width  = 12,
-  height = 4
+ggplot2::ggsave(
+  filename = "results/figures/24_validation-confusion-matrices.png",
+  plot     = confusion_grid,
+  width    = 12, # Wider to fit 3 plots side-by-side
+  height   = 4
 )
 
 # Select best model
 best_model_name <- all_val_metrics |>
-  filter(.metric == "j_index") |>
-  arrange(desc(.estimate)) |>
-  slice(1) |>
+  rename(mean = .estimate) |>
+  select_best_params() |>
   pull(model)
 
 best_fit_path <- list(
@@ -139,19 +115,20 @@ final_test_metrics <- final_test_results$metrics |>
 
 write_csv(final_test_metrics, "results/tables/14_final-model-test-metrics.csv")
 
-# Figure 24: Final model test set confusion matrix
+# Figure 25: Final model test set confusion matrix
 final_test_confusion <- yardstick::conf_mat(
   final_test_predictions,
   truth    = stroke,
   estimate = .pred_class
 )
 
-final_cm_plot <- autoplot(final_test_confusion, type = "heatmap") +
-  labs(title = paste0(best_model_name, " Confusion Matrix on Test Set")) +
-  plot_theme
+final_cm_plot <- plot_confusion_matrix(
+  confusion_save_path = "results/tables/15_final-model-test-confusion-matrix.csv",
+  title = paste0(best_model_name, " Confusion Matrix on Test Set")
+)
 
 ggsave(
-  "results/figures/24_final-model-test-confusion.png",
+  "results/figures/25_final-model-test-confusion.png",
   plot   = final_cm_plot,
   width  = 6,
   height = 5

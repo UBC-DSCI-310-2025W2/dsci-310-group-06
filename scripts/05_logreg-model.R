@@ -1,5 +1,9 @@
 source("renv/activate.R")
 source("scripts/functions/evaluate_model.R")
+source("scripts/functions/plot_confusion_matrix.R")
+source("scripts/functions/select_best_params.R")
+source("scripts/functions/set_plot_theme.R")
+set_plot_theme()
 
 library(tidyverse)
 library(tidymodels)
@@ -85,10 +89,7 @@ logr_cv_results <- workflow() |>
   ) |>
   collect_metrics()
 
-best_logr_params <- logr_cv_results |>
-  filter(.metric == "j_index") |>
-  arrange(desc(mean)) |>
-  slice(1)
+best_logr_params <- select_best_params(logr_cv_results)
 
 write_csv(
   best_logr_params,
@@ -119,3 +120,17 @@ evaluate_model(
   metric_save_path    = "results/tables/08_logreg-validation-metrics.csv",
   confusion_save_path = "results/tables/09_logreg-confusion-matrix.csv"
 )
+
+#For confusion matrix plot
+logreg_cm_plot <- plot_confusion_matrix(
+  confusion_save_path = "results/tables/09_logreg-confusion-matrix.csv",
+  title               = "Logistic Regression Confusion Matrix (Validation Set)"
+)
+
+ggplot2::ggsave(
+  filename = "results/figures/22_logreg-confusion-matrix.png",
+  plot     = logreg_cm_plot,
+  width    = 6,
+  height   = 6
+)
+

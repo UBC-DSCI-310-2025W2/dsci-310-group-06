@@ -1,5 +1,9 @@
 source("renv/activate.R")
 source("scripts/functions/evaluate_model.R")
+source("scripts/functions/plot_confusion_matrix.R")
+source("scripts/functions/select_best_params.R") 
+source("scripts/functions/set_plot_theme.R")
+set_plot_theme()
 
 library(tidyverse)
 library(tidymodels)
@@ -66,8 +70,7 @@ coarse_n_neighbors_plot <- coarse_knn_cv_sweep_results |>
     title = "J-Index vs # of Neighbours for kNN Model",
     x     = "# of Neighbours",
     y     = "Mean J-Index"
-  ) +
-  theme_bw()
+  )
 
 ggsave(
   "results/figures/20_coarse-knn-k-sweep.png",
@@ -77,10 +80,7 @@ ggsave(
 )
 
 # Fine sweep
-best_coarse_k <- coarse_knn_cv_sweep_results |>
-  filter(.metric == "j_index") |>
-  arrange(desc(mean)) |>
-  slice(1) |>
+best_coarse_k <- select_best_params(coarse_knn_cv_sweep_results) |>
   pull(neighbors)
 
 fine_knn_k_vals <- tibble(
@@ -102,10 +102,7 @@ write_csv(
   "results/tables/03_fine-knn-cv-results.csv"
 )
 
-best_k <- fine_knn_cv_sweep_results |>
-  filter(.metric == "j_index") |>
-  arrange(desc(mean)) |>
-  slice(1) |>
+best_k <- select_best_params(fine_knn_cv_sweep_results) |>
   pull(neighbors)
 
 # Final model
@@ -131,4 +128,17 @@ evaluate_model(
   predictions         = knn_stroke_predictions,
   metric_save_path    = "results/tables/04_knn-validation-metrics.csv",
   confusion_save_path = "results/tables/05_knn-confusion-matrix.csv"
+)
+
+#For confusion matrix plot
+knn_cm_plot <- plot_confusion_matrix(
+  confusion_save_path = "results/tables/05_knn-confusion-matrix.csv",
+  title               = "k-NN Confusion Matrix (Validation Set)"
+)
+
+ggplot2::ggsave(
+  filename = "results/figures/21_knn-confusion-matrix.png",
+  plot     = knn_cm_plot,
+  width    = 6,
+  height   = 6
 )
