@@ -1,8 +1,8 @@
 source("renv/activate.R")
+source("scripts/functions/load_stroke_data.R")
 
 library(tidyverse)
 library(tidymodels)
-
 library(docopt)
 
 doc <- "
@@ -21,7 +21,7 @@ out_training   <- opts$out_training
 out_validation <- opts$out_validation
 out_testing    <- opts$out_testing
 
-stroke <- read_csv(input_path)
+stroke <- load_stroke_data(input_path)
 
 #Rename columns to all lowercase
 stroke_colnames <- stroke |>
