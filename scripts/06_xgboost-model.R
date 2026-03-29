@@ -1,7 +1,7 @@
 source("renv/activate.R")
 source("scripts/functions/evaluate_model.R")
 source("scripts/functions/select_best_params.R")
-source("scripts/functions/plot_confusion_matrix.R") 
+source("scripts/functions/plot_confusion_matrix.R")
 source("scripts/functions/set_plot_theme.R")
 set_plot_theme()
 source("scripts/functions/create_stroke_recipe.R")
@@ -54,7 +54,7 @@ vip_plot <- xgb_fit_initial |>
   labs(title = "XGBoost Feature Importance")
 
 ggsave(
-  "results/figures/21_xgboost-feature-importance.png",
+  "results/figures/23_xgboost-feature-importance.png",
   plot   = vip_plot,
   width  = 8,
   height = 6
@@ -139,7 +139,7 @@ xgboost_cm_plot <- plot_confusion_matrix(
 )
 
 ggplot2::ggsave(
-  filename = "results/figures/23_xgboost-confusion-matrix.png",
+  filename = "results/figures/24_xgboost-confusion-matrix.png",
   plot     = xgboost_cm_plot,
   width    = 6,
   height   = 6
