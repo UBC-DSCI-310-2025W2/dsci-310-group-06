@@ -1556,6 +1556,30 @@
       "Maintainer": "Dirk Eddelbuettel <edd@debian.org>",
       "Repository": "https://packagemanager.posit.co/cran/latest"
     },
+    "docopt": {
+      "Package": "docopt",
+      "Version": "0.7.2",
+      "Source": "Repository",
+      "Type": "Package",
+      "Title": "Command-Line Interface Specification Language",
+      "Authors@R": "c( person(\"Edwin\", \"de Jonge\", email = \"edwindjonge@gmail.com\", role = c(\"aut\", \"cre\"),  comment=c(ORCID=\"0000-0002-6580-4718\")))",
+      "Maintainer": "Edwin de Jonge <edwindjonge@gmail.com>",
+      "Description": "Define a command-line interface by just giving it a description in the specific format.",
+      "License": "MIT + file LICENSE",
+      "URL": "https://github.com/docopt/docopt.R",
+      "BugReports": "https://github.com/docopt/docopt.R/issues",
+      "Imports": [
+        "methods"
+      ],
+      "Suggests": [
+        "testthat"
+      ],
+      "RoxygenNote": "7.3.2",
+      "Encoding": "UTF-8",
+      "NeedsCompilation": "no",
+      "Author": "Edwin de Jonge [aut, cre] (<https://orcid.org/0000-0002-6580-4718>)",
+      "Repository": "CRAN"
+    },
     "dplyr": {
       "Package": "dplyr",
       "Version": "1.2.0",
