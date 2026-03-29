@@ -188,7 +188,7 @@ average glucose level emerged as the most critical features
 (@fig-xgb-vip).
 
 ![XGBoost Feature
-Importance](../results/figures/21_xgboost-feature-importance.png){#fig-xgb-vip}
+Importance](../results/figures/23_xgboost-feature-importance.png){#fig-xgb-vip}
 
 We then perform hyperparameter tuning on several key parameters such as number of trees, tree depth, learning rate, and minimum number of observations in a node. The best performance was achieved with `r xgb_params |> pull(trees)` trees, a tree depth of `r xgb_params |> pull(tree_depth)`, a learning rate of `r xgb_params |> pull(learn_rate) |> round(4)`, and a minimum number of observations in a node of `r xgb_params |> pull(min_n)`. Evaluating the final XGBoost model on the validation set yielded a J-index of `r xgb_val |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`.
 
@@ -199,13 +199,13 @@ We compared the three models on the validation set using J-index,
 sensitivity, and accuracy (@fig-metrics).
 
 ![Validation Set Metrics by
-Model](../results/figures/22_validation-metrics-comparison.png){#fig-metrics}
+Model](../results/figures/25_validation-metrics-comparison.png){#fig-metrics}
 
 Inspecting the confusion matrices in @fig-cms, we can evaluate how each
 model handled false positives and false negatives.
 
 ![Confusion Matrices on Validation
-Set](../results/figures/23_validation-confusion-matrices.png){#fig-cms}
+Set](../results/figures/26_validation-confusion-matrices.png){#fig-cms}
 
 Based on the highest J-Index, the
 **`r val_metrics |> filter(.metric == "j_index") |> arrange(desc(.estimate)) |> slice(1) |> pull(model)`**
@@ -218,7 +218,7 @@ final J-index of
 **`r test_metrics |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`**.
 
 ![Final Model Confusion Matrix on Test
-Set](../results/figures/24_final-model-test-confusion.png){#fig-final-cm}
+Set](../results/figures/27_final-model-test-confusion.png){#fig-final-cm}
 
 # Discussion
 
@@ -290,8 +290,8 @@ populations. Other areas that can be explored are specific aspects of
 the predictors explored in this analysis. For example, one of our
 predictors is BMI, which is shown to be linked to all-cause mortality.
 However, BMI does not differentiate between fat mass and muscle mass
-(Cheung et al, 2015). Considering muscle mass is inversely associated
-with mortality (Lee & Giovannucci, 2018), researchers may want to see to
+[@cheung2021]. Considering muscle mass is inversely associated
+with mortality [@lee2018], researchers may want to see to
 what degree does fat mass associate with all-cause mortality, and in our
 specific case, stroke.
 
