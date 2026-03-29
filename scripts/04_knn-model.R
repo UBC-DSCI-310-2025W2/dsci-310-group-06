@@ -1,15 +1,38 @@
 source("renv/activate.R")
 source("scripts/functions/evaluate_model.R")
 source("scripts/functions/plot_confusion_matrix.R")
-source("scripts/functions/select_best_params.R") 
+source("scripts/functions/select_best_params.R")
 source("scripts/functions/set_plot_theme.R")
 set_plot_theme()
 
+library(docopt)
 library(tidyverse)
 library(tidymodels)
 library(themis)
 
 set.seed(894235)
+
+doc <- "
+Usage: 04_knn-model.R --training=<path> --validation=<path> --out_figures_dir=<dir> --out_tables_dir=<dir> --out_models_dir=<dir>
+
+Options:
+  --training=<path>        Path to training CSV
+  --validation=<path>      Path to validation CSV
+  --out_figures_dir=<dir>  Directory for output figures
+  --out_tables_dir=<dir>   Directory for output tables
+  --out_models_dir=<dir>   Directory for output models
+"
+
+opts            <- docopt(doc)
+training_path   <- opts$training
+validation_path <- opts$validation
+out_figures_dir <- opts$out_figures_dir
+out_tables_dir  <- opts$out_tables_dir
+out_models_dir  <- opts$out_models_dir
+
+dir.create(out_figures_dir, recursive = TRUE, showWarnings = FALSE)
+dir.create(out_tables_dir,  recursive = TRUE, showWarnings = FALSE)
+dir.create(out_models_dir,  recursive = TRUE, showWarnings = FALSE)
 
 # Load data
 factor_cols <- c(
@@ -17,11 +40,11 @@ factor_cols <- c(
   "hypertension", "ever_married", "heart_disease", "stroke"
 )
 
-stroke_training <- read_csv("data/processed/stroke_training.csv") |>
+stroke_training <- read_csv(training_path) |>
   mutate(across(all_of(factor_cols), factor)) |>
   select(-id)
 
-stroke_validation <- read_csv("data/processed/stroke_validation.csv") |>
+stroke_validation <- read_csv(validation_path) |>
   mutate(across(all_of(factor_cols), factor))
 
 
@@ -59,7 +82,7 @@ coarse_knn_cv_sweep_results <- workflow() |>
 
 write_csv(
   coarse_knn_cv_sweep_results,
-  "results/tables/02_coarse-knn-cv-results.csv"
+  file.path(out_tables_dir, "02_coarse-knn-cv-results.csv")
 )
 
 coarse_n_neighbors_plot <- coarse_knn_cv_sweep_results |>
@@ -73,7 +96,7 @@ coarse_n_neighbors_plot <- coarse_knn_cv_sweep_results |>
   )
 
 ggsave(
-  "results/figures/20_coarse-knn-k-sweep.png",
+  file.path(out_figures_dir, "20_coarse-knn-k-sweep.png"),
   plot   = coarse_n_neighbors_plot,
   width  = 8,
   height = 5
@@ -99,7 +122,7 @@ fine_knn_cv_sweep_results <- workflow() |>
 
 write_csv(
   fine_knn_cv_sweep_results,
-  "results/tables/03_fine-knn-cv-results.csv"
+  file.path(out_tables_dir, "03_fine-knn-cv-results.csv")
 )
 
 best_k <- select_best_params(fine_knn_cv_sweep_results) |>
@@ -118,26 +141,25 @@ knn_stroke_fit <- workflow() |>
   add_recipe(stroke_recipe) |>
   fit(data = stroke_training)
 
-dir.create("results/models", recursive = TRUE, showWarnings = FALSE)
-saveRDS(knn_stroke_fit, "results/models/knn_fit.rds")
+saveRDS(knn_stroke_fit, file.path(out_models_dir, "knn_fit.rds"))
 
 knn_stroke_predictions <- predict(knn_stroke_fit, stroke_validation) |>
   bind_cols(stroke_validation)
 
 evaluate_model(
   predictions         = knn_stroke_predictions,
-  metric_save_path    = "results/tables/04_knn-validation-metrics.csv",
-  confusion_save_path = "results/tables/05_knn-confusion-matrix.csv"
+  metric_save_path    = file.path(out_tables_dir, "04_knn-validation-metrics.csv"),
+  confusion_save_path = file.path(out_tables_dir, "05_knn-confusion-matrix.csv")
 )
 
 #For confusion matrix plot
 knn_cm_plot <- plot_confusion_matrix(
-  confusion_save_path = "results/tables/05_knn-confusion-matrix.csv",
+  confusion_save_path = file.path(out_tables_dir, "05_knn-confusion-matrix.csv"),
   title               = "k-NN Confusion Matrix (Validation Set)"
 )
 
 ggplot2::ggsave(
-  filename = "results/figures/21_knn-confusion-matrix.png",
+  filename = file.path(out_figures_dir, "21_knn-confusion-matrix.png"),
   plot     = knn_cm_plot,
   width    = 6,
   height   = 6

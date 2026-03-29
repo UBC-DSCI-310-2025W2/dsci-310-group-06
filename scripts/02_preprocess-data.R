@@ -3,7 +3,25 @@ source("renv/activate.R")
 library(tidyverse)
 library(tidymodels)
 
-stroke <- read_csv("data/healthcare-dataset-stroke-data.csv")
+library(docopt)
+
+doc <- "
+Usage: 02_preprocess-data.R --input=<path> --out_training=<path> --out_validation=<path> --out_testing=<path>
+
+Options:
+  --input=<path>           Path to raw stroke CSV
+  --out_training=<path>    Output path for training split CSV
+  --out_validation=<path>  Output path for validation split CSV
+  --out_testing=<path>     Output path for testing split CSV
+"
+
+opts           <- docopt(doc)
+input_path     <- opts$input
+out_training   <- opts$out_training
+out_validation <- opts$out_validation
+out_testing    <- opts$out_testing
+
+stroke <- read_csv(input_path)
 
 #Rename columns to all lowercase
 stroke_colnames <- stroke |>
@@ -70,12 +88,13 @@ stroke_training <- training(stroke_split)
 stroke_validation <- validation(stroke_split)
 stroke_testing <- testing(stroke_split)
 
-# Create the directory if it doesn't exist
-if (!dir.exists("data/processed")) {
-  dir.create("data/processed", recursive = TRUE)
+# Create output directory if it doesn't exist
+for (out_path in c(out_training, out_validation, out_testing)) {
+  out_dir <- dirname(out_path)
+  if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
 }
 
-# Save data to seperate files
-write_csv(stroke_training, "data/processed/stroke_training.csv")
-write_csv(stroke_validation, "data/processed/stroke_validation.csv")
-write_csv(stroke_testing, "data/processed/stroke_testing.csv")
+# Save data to separate files
+write_csv(stroke_training,   out_training)
+write_csv(stroke_validation, out_validation)
+write_csv(stroke_testing,    out_testing)

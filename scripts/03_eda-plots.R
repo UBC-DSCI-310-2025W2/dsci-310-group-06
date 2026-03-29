@@ -11,17 +11,28 @@ library(grid)
 source("scripts/functions/set_plot_theme.R")
 set_plot_theme()
 
-# Create directories
-if (!dir.exists("results/figures")) {
-  dir.create("results/figures", recursive = TRUE)
-}
+library(docopt)
 
-if (!dir.exists("results/tables")) {
-  dir.create("results/tables", recursive = TRUE)
-}
+doc <- "
+Usage: 03_eda-plots.R --input=<path> --out_figures_dir=<dir> --out_tables_dir=<dir>
+
+Options:
+  --input=<path>           Path to training CSV
+  --out_figures_dir=<dir>  Directory for output figures
+  --out_tables_dir=<dir>   Directory for output tables
+"
+
+opts            <- docopt(doc)
+input_path      <- opts$input
+out_figures_dir <- opts$out_figures_dir
+out_tables_dir  <- opts$out_tables_dir
+
+# Create output directories
+if (!dir.exists(out_figures_dir)) dir.create(out_figures_dir, recursive = TRUE)
+if (!dir.exists(out_tables_dir))  dir.create(out_tables_dir,  recursive = TRUE)
 
 # Load training data
-stroke_training <- read_csv("data/processed/stroke_training.csv")
+stroke_training <- read_csv(input_path)
 
 # Remove id column from training set (not a predictor)
 stroke_training <- stroke_training |> select(-id)
@@ -104,7 +115,7 @@ stroke_summary_stats <- stroke_numeric_cols_summary |>
   ) |>
   select(column_name, key, value)
 
-write_csv(stroke_summary_stats, "results/tables/01_summary-stats.csv")
+write_csv(stroke_summary_stats, file.path(out_tables_dir, "01_summary-stats.csv"))
 
 # Figure 01: ggpairs plot
 
@@ -138,7 +149,7 @@ plot_pairs <- ggpairs(
 
 suppressMessages(suppressWarnings(
   ggsave(
-    "results/figures/01_ggpairs-plot.png",
+    file.path(out_figures_dir, "01_ggpairs-plot.png"),
     plot = plot_pairs,
     width = 12,
     height = 10
@@ -162,7 +173,7 @@ stroke_gender <- stroke_training |>
   )
 
 ggsave(
-  "results/figures/02_stroke-by-gender.png",
+  file.path(out_figures_dir, "02_stroke-by-gender.png"),
   plot = stroke_gender,
   width = 8,
   height = 5
@@ -182,7 +193,7 @@ stroke_age <- stroke_training |>
   )
 
 ggsave(
-  "results/figures/03_stroke-by-age.png",
+  file.path(out_figures_dir, "03_stroke-by-age.png"),
   plot = stroke_age,
   width = 10,
   height = 6
@@ -205,7 +216,7 @@ stroke_hypertension <- stroke_training |>
   )
 
 ggsave(
-  "results/figures/04_stroke-by-hypertension.png",
+  file.path(out_figures_dir, "04_stroke-by-hypertension.png"),
   plot = stroke_hypertension,
   width = 8,
   height = 5
@@ -228,7 +239,7 @@ stroke_heart_disease <- stroke_training |>
   )
 
 ggsave(
-  "results/figures/05_stroke-by-heart-disease.png",
+  file.path(out_figures_dir, "05_stroke-by-heart-disease.png"),
   plot = stroke_heart_disease,
   width = 8,
   height = 5
@@ -251,7 +262,7 @@ stroke_residence <- stroke_training |>
   )
 
 ggsave(
-  "results/figures/06_stroke-by-residence.png",
+  file.path(out_figures_dir, "06_stroke-by-residence.png"),
   plot = stroke_residence,
   width = 8,
   height = 5
@@ -271,7 +282,7 @@ stroke_avg_glucose_level <- stroke_training |>
   theme(legend.position = "none")
 
 ggsave(
-  "results/figures/07_glucose-by-stroke.png",
+  file.path(out_figures_dir, "07_glucose-by-stroke.png"),
   plot = stroke_avg_glucose_level,
   width = 8,
   height = 6
@@ -291,7 +302,7 @@ stroke_bmi <- stroke_training |>
   theme(legend.position = "none")
 
 ggsave(
-  "results/figures/08_bmi-by-stroke.png",
+  file.path(out_figures_dir, "08_bmi-by-stroke.png"),
   plot = stroke_bmi,
   width = 8,
   height = 6
@@ -315,7 +326,7 @@ stroke_smoking_status <- stroke_training |>
   theme(axis.text.x = element_text(angle = 20, hjust = 1))
 
 ggsave(
-  "results/figures/09_stroke-by-smoking.png",
+  file.path(out_figures_dir, "09_stroke-by-smoking.png"),
   plot = stroke_smoking_status,
   width = 9,
   height = 5
@@ -339,7 +350,7 @@ stroke_worktype_plot <- stroke_training |>
   theme(axis.text.x = element_text(angle = 20, hjust = 1))
 
 ggsave(
-  "results/figures/10_stroke-by-work-type.png",
+  file.path(out_figures_dir, "10_stroke-by-work-type.png"),
   plot = stroke_worktype_plot,
   width = 10,
   height = 5
@@ -360,7 +371,7 @@ stroke_age_gender <- stroke_training |>
   )
 
 ggsave(
-  "results/figures/11_stroke-by-age-gender.png",
+  file.path(out_figures_dir, "11_stroke-by-age-gender.png"),
   plot = stroke_age_gender,
   width = 14,
   height = 5
@@ -381,7 +392,7 @@ stroke_age_smoking <- stroke_training |>
   )
 
 ggsave(
-  "results/figures/12_stroke-by-age-smoking.png",
+  file.path(out_figures_dir, "12_stroke-by-age-smoking.png"),
   plot = stroke_age_smoking,
   width = 12,
   height = 6
@@ -410,7 +421,7 @@ heartdisease_hypertension_plot <- ggplot(
   )
 
 ggsave(
-  "results/figures/13_stroke-by-hypertension-heart-disease.png",
+  file.path(out_figures_dir, "13_stroke-by-hypertension-heart-disease.png"),
   plot = heartdisease_hypertension_plot,
   width = 8,
   height = 6
@@ -436,7 +447,7 @@ stroke_gender_plot <- heartdisease_gender |>
   )
 
 ggsave(
-  "results/figures/14_stroke-by-gender-heart-disease.png",
+  file.path(out_figures_dir, "14_stroke-by-gender-heart-disease.png"),
   plot = stroke_gender_plot,
   width = 10,
   height = 5
@@ -458,7 +469,7 @@ age_bmi <- stroke_training |>
   )
 
 ggsave(
-  "results/figures/15_stroke-by-age-bmi.png",
+  file.path(out_figures_dir, "15_stroke-by-age-bmi.png"),
   plot = age_bmi,
   width = 8,
   height = 6
@@ -480,7 +491,7 @@ glucose_bmi <- stroke_training |>
   )
 
 ggsave(
-  "results/figures/16_stroke-by-glucose-bmi.png",
+  file.path(out_figures_dir, "16_stroke-by-glucose-bmi.png"),
   plot = glucose_bmi,
   width = 8,
   height = 6
@@ -516,7 +527,7 @@ glucose_heartdisease <- stroke_training |>
   )
 
 png(
-  "results/figures/17_stroke-by-glucose-hypertension-heart-disease.png",
+  file.path(out_figures_dir, "17_stroke-by-glucose-hypertension-heart-disease.png"),
   width = 15,
   height = 6,
   units = "in",
@@ -563,7 +574,7 @@ residence_hypertension <- stroke_training |>
   )
 
 png(
-  "results/figures/18_stroke-by-residence-heart-disease-hypertension.png",
+  file.path(out_figures_dir, "18_stroke-by-residence-heart-disease-hypertension.png"),
   width = 15,
   height = 6,
   units = "in",
@@ -614,7 +625,7 @@ hypertension_residence <- stroke_training |>
   )
 
 png(
-  "results/figures/19_stroke-percentages-by-residence-heart-disease-hypertension.png",
+  file.path(out_figures_dir, "19_stroke-percentages-by-residence-heart-disease-hypertension.png"),
   width = 15,
   height = 6,
   units = "in",
