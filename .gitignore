@@ -9,4 +9,5 @@ data/*
 .Rhistory
 .RData
 Rplots.pdf
+results/*
 !results/.gitkeep

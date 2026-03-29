@@ -1,10 +1,12 @@
 source("renv/activate.R")
 source("scripts/functions/evaluate_model.R")
 source("scripts/functions/select_best_params.R")
-source("scripts/functions/plot_confusion_matrix.R") 
+source("scripts/functions/plot_confusion_matrix.R")
 source("scripts/functions/set_plot_theme.R")
 set_plot_theme()
+source("scripts/functions/create_stroke_recipe.R")
 
+library(docopt)
 library(tidyverse)
 library(tidymodels)
 library(themis)
@@ -13,31 +15,52 @@ library(finetune)
 
 set.seed(894235)
 
-# Load data 
+doc <- "
+Usage: 06_xgboost-model.R --training=<path> --validation=<path> --out_figures_dir=<dir> --out_tables_dir=<dir> --out_models_dir=<dir>
+
+Options:
+  --training=<path>        Path to training CSV
+  --validation=<path>      Path to validation CSV
+  --out_figures_dir=<dir>  Directory for output figures
+  --out_tables_dir=<dir>   Directory for output tables
+  --out_models_dir=<dir>   Directory for output models
+"
+
+opts            <- docopt(doc)
+training_path   <- opts$training
+validation_path <- opts$validation
+out_figures_dir <- opts$out_figures_dir
+out_tables_dir  <- opts$out_tables_dir
+out_models_dir  <- opts$out_models_dir
+
+dir.create(out_figures_dir, recursive = TRUE, showWarnings = FALSE)
+dir.create(out_tables_dir,  recursive = TRUE, showWarnings = FALSE)
+dir.create(out_models_dir,  recursive = TRUE, showWarnings = FALSE)
+
+# Load data
 
 factor_cols <- c(
   "gender", "work_type", "residence_type", "smoking_status",
   "hypertension", "ever_married", "heart_disease", "stroke"
 )
 
-stroke_training <- read_csv("data/processed/stroke_training.csv") |>
+stroke_training <- read_csv(training_path) |>
   mutate(across(all_of(factor_cols), factor))
 
-stroke_validation <- read_csv("data/processed/stroke_validation.csv") |>
+stroke_validation <- read_csv(validation_path) |>
   mutate(across(all_of(factor_cols), factor))
 
 # Feature importance via initial model
 
-xgb_recipe_full <- recipe(
-  stroke ~ gender + age + hypertension + heart_disease +
-    residence_type + avg_glucose_level + bmi + smoking_status,
-  data = stroke_training
-) |>
-  step_YeoJohnson(all_numeric_predictors()) |>
-  step_scale(all_numeric_predictors()) |>
-  step_center(all_numeric_predictors()) |>
-  step_dummy(all_nominal_predictors()) |>
-  step_smote(stroke)
+xgb_recipe_full <- create_stroke_recipe(
+  training_data = stroke_training,
+  response      = "stroke",
+  predictors    = c(
+    "gender", "age", "hypertension", "heart_disease",
+    "residence_type", "avg_glucose_level", "bmi", "smoking_status"
+  ),
+  smote = TRUE
+)
 
 xgb_spec_initial <- boost_tree(trees = 200) |>
   set_engine("xgboost") |>
@@ -54,7 +77,7 @@ vip_plot <- xgb_fit_initial |>
   labs(title = "XGBoost Feature Importance")
 
 ggsave(
-  "results/figures/21_xgboost-feature-importance.png",
+  file.path(out_figures_dir, "23_xgboost-feature-importance.png"),
   plot   = vip_plot,
   width  = 8,
   height = 6
@@ -62,16 +85,15 @@ ggsave(
 
 # Hyperparameter tuning
 
-xgb_recipe_selected <- recipe(
-  stroke ~ age + avg_glucose_level + bmi +
-    hypertension + heart_disease + smoking_status + residence_type,
-  data = stroke_training
-) |>
-  step_YeoJohnson(all_numeric_predictors()) |>
-  step_scale(all_numeric_predictors()) |>
-  step_center(all_numeric_predictors()) |>
-  step_dummy(all_nominal_predictors()) |>
-  step_smote(stroke)
+xgb_recipe_selected <- create_stroke_recipe(
+  training_data = stroke_training,
+  response      = "stroke",
+  predictors    = c(
+    "age", "avg_glucose_level", "bmi",
+    "hypertension", "heart_disease", "smoking_status", "residence_type"
+  ),
+  smote = TRUE
+)
 
 xgb_spec_tune <- boost_tree(
   trees          = tune(),
@@ -113,7 +135,7 @@ best_xgb_params <- xgb_bayes_results |>
 
 write_csv(
   best_xgb_params,
-  "results/tables/10_xgboost-best-params.csv"
+  file.path(out_tables_dir, "10_xgboost-best-params.csv")
 )
 
 # Final model
@@ -122,25 +144,24 @@ xgb_fit <- xgb_wf |>
   finalize_workflow(best_xgb_params) |>
   fit(data = stroke_training)
 
-dir.create("results/models", recursive = TRUE, showWarnings = FALSE)
-saveRDS(xgb_fit, "results/models/xgb_fit.rds")
+saveRDS(xgb_fit, file.path(out_models_dir, "xgb_fit.rds"))
 
 xgb_val_predictions <- predict(xgb_fit, stroke_validation) |>
   bind_cols(stroke_validation)
 
 evaluate_model(
   predictions         = xgb_val_predictions,
-  metric_save_path    = "results/tables/11_xgboost-validation-metrics.csv",
-  confusion_save_path = "results/tables/12_xgboost-confusion-matrix.csv"
+  metric_save_path    = file.path(out_tables_dir, "11_xgboost-validation-metrics.csv"),
+  confusion_save_path = file.path(out_tables_dir, "12_xgboost-confusion-matrix.csv")
 )
 
 xgboost_cm_plot <- plot_confusion_matrix(
-  confusion_save_path = "results/tables/12_xgboost-confusion-matrix.csv",
+  confusion_save_path = file.path(out_tables_dir, "12_xgboost-confusion-matrix.csv"),
   title               = "XGBoost Confusion Matrix (Validation Set)"
 )
 
 ggplot2::ggsave(
-  filename = "results/figures/23_xgboost-confusion-matrix.png",
+  filename = file.path(out_figures_dir, "24_xgboost-confusion-matrix.png"),
   plot     = xgboost_cm_plot,
   width    = 6,
   height   = 6
