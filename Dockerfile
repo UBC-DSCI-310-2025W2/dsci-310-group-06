@@ -2,6 +2,8 @@ FROM rocker/rstudio:4.4.2
 
 RUN apt-get update && \
     apt-get install -y \
+    curl \
+    unzip \
     libcurl4-openssl-dev \
     libssl-dev \
     libxml2-dev \
@@ -29,5 +31,7 @@ RUN mkdir -p /root/.R && \
     printf 'CFLAGS += -Wno-error=format-security\nCXXFLAGS += -Wno-error=format-security\n' > /root/.R/Makevars
 
 RUN R -e "renv::restore()"
+
+RUN quarto install tinytex --update-path
 
 EXPOSE 8787
