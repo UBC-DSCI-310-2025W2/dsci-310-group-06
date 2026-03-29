@@ -77,7 +77,7 @@ vip_plot <- xgb_fit_initial |>
   labs(title = "XGBoost Feature Importance")
 
 ggsave(
-  file.path(out_figures_dir, "21_xgboost-feature-importance.png"),
+  file.path(out_figures_dir, "23_xgboost-feature-importance.png"),
   plot   = vip_plot,
   width  = 8,
   height = 6

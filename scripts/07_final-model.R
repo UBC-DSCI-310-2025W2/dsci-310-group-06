@@ -91,7 +91,7 @@ metrics_plot <- all_val_metrics |>
   )
 
 ggsave(
-  file.path(out_figures_dir, "22_validation-metrics-comparison.png"),
+  file.path(out_figures_dir, "25_validation-metrics-comparison.png"),
   plot   = metrics_plot,
   width  = 8,
   height = 5
@@ -116,7 +116,7 @@ confusion_grid <- gridExtra::arrangeGrob(
 )
 
 ggplot2::ggsave(
-  filename = file.path(out_figures_dir, "23_validation-confusion-matrices.png"),
+  filename = file.path(out_figures_dir, "26_validation-confusion-matrices.png"),
   plot     = confusion_grid,
   width    = 12, # Wider to fit 3 plots side-by-side
   height   = 4
@@ -164,7 +164,7 @@ final_cm_plot <- plot_confusion_matrix(
 )
 
 ggsave(
-  file.path(out_figures_dir, "24_final-model-test-confusion.png"),
+  file.path(out_figures_dir, "27_final-model-test-confusion.png"),
   plot   = final_cm_plot,
   width  = 6,
   height = 5
