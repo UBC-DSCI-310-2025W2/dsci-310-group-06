@@ -4,6 +4,8 @@ source("scripts/functions/plot_confusion_matrix.R")
 source("scripts/functions/select_best_params.R")
 source("scripts/functions/set_plot_theme.R")
 set_plot_theme()
+source("scripts/functions/create_stroke_recipe.R")
+
 
 library(docopt)
 library(tidyverse)
@@ -48,16 +50,15 @@ stroke_validation <- read_csv(validation_path) |>
   mutate(across(all_of(factor_cols), factor))
 
 
-stroke_recipe <- recipe(
-  stroke ~ gender + age + hypertension + heart_disease +
-    residence_type + avg_glucose_level + bmi + smoking_status,
-  data = stroke_training
-) |>
-  step_YeoJohnson(all_numeric_predictors()) |>
-  step_scale(all_numeric_predictors()) |>
-  step_center(all_numeric_predictors()) |>
-  step_dummy(all_nominal_predictors()) |>
-  step_smote(stroke)
+stroke_recipe <- create_stroke_recipe(
+  training_data = stroke_training,
+  response      = "stroke",
+  predictors    = c(
+    "gender", "age", "hypertension", "heart_disease",
+    "residence_type", "avg_glucose_level", "bmi", "smoking_status"
+  ),
+  smote = TRUE
+)
 
 # Coarse Sweep
 stroke_knn_classifier <- nearest_neighbor(
