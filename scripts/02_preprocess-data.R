@@ -1,9 +1,10 @@
 source("renv/activate.R")
+source("scripts/functions/load_stroke_data.R")
 
 library(tidyverse)
 library(tidymodels)
 
-stroke <- read_csv("data/healthcare-dataset-stroke-data.csv")
+stroke <- load_stroke_data("data/healthcare-dataset-stroke-data.csv")
 
 #Rename columns to all lowercase
 stroke_colnames <- stroke |>
