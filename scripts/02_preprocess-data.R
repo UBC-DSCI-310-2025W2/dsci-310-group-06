@@ -31,6 +31,59 @@ stroke_colnames <- stroke |>
 
 colnames(stroke) <- stroke_colnames
 
+# ── Data Validation ──────────────────────────────────────────────────────────
+
+# 1. Correct column names
+required_cols <- c("id", "gender", "age", "hypertension", "heart_disease",
+                   "ever_married", "work_type", "residence_type",
+                   "avg_glucose_level", "bmi", "smoking_status", "stroke")
+missing_cols <- setdiff(required_cols, names(stroke))
+if (length(missing_cols) > 0) {
+  stop("Missing required columns: ", paste(missing_cols, collapse = ", "))
+}
+
+# 2. No empty observations
+all_na_rows <- rowSums(is.na(stroke)) == ncol(stroke)
+if (any(all_na_rows)) {
+  stop("Dataset contains ", sum(all_na_rows), " completely empty rows.")
+}
+
+# 3. Missingness not beyond expected threshold (BMI <= 20%)
+bmi_missing_pct <- mean(is.na(stroke$bmi))
+if (bmi_missing_pct > 0.20) {
+  stop("BMI missingness is ", round(bmi_missing_pct * 100, 1), "% - exceeds 20% threshold.")
+}
+
+# 4. Correct data types
+if (!is.numeric(stroke$age)) stop("Column 'age' must be numeric.")
+if (!is.numeric(stroke$avg_glucose_level)) stop("Column 'avg_glucose_level' must be numeric.")
+
+# 5. No duplicate observations
+if (anyDuplicated(stroke$id) > 0) {
+  stop("Dataset contains duplicate IDs.")
+}
+
+# 6. No outlier/anomalous values
+if (any(stroke$age < 0 | stroke$age > 120, na.rm = TRUE)) {
+  stop("Column 'age' contains values outside expected range [0, 120].")
+}
+if (any(stroke$avg_glucose_level <= 0, na.rm = TRUE)) {
+  stop("Column 'avg_glucose_level' contains non-positive values.")
+}
+
+# 7. Correct category levels
+valid_gender <- c("Male", "Female", "Other")
+invalid_gender <- setdiff(unique(stroke$gender), valid_gender)
+if (length(invalid_gender) > 0) {
+  stop("Unexpected gender values: ", paste(invalid_gender, collapse = ", "))
+}
+
+# 8. Target variable follows expected distribution (stroke rate between 1%-50%)
+stroke_rate <- mean(stroke$stroke == 1, na.rm = TRUE)
+if (stroke_rate < 0.01 | stroke_rate > 0.50) {
+  stop("Stroke rate of ", round(stroke_rate * 100, 1), "% is outside expected range [1%, 50%].")
+}
+
 #Convert Unknown's to NA
 stroke <- stroke |>
   mutate(smoking_status = na_if(smoking_status, "Unknown"))
