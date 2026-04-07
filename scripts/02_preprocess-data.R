@@ -1,5 +1,5 @@
 source("renv/activate.R")
-source("scripts/functions/load_stroke_data.R")
+library(exploretraintest)
 
 library(tidyverse)
 library(tidymodels)

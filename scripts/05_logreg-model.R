@@ -1,10 +1,6 @@
 source("renv/activate.R")
-source("scripts/functions/evaluate_model.R")
-source("scripts/functions/plot_confusion_matrix.R")
-source("scripts/functions/select_best_params.R")
-source("scripts/functions/set_plot_theme.R")
+library(exploretraintest)
 set_plot_theme()
-source("scripts/functions/create_stroke_recipe.R")
 
 library(docopt)
 library(tidyverse)
