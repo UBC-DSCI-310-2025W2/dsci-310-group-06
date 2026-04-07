@@ -21,6 +21,14 @@ out_training   <- opts$out_training
 out_validation <- opts$out_validation
 out_testing    <- opts$out_testing
 
+opts           <- docopt(doc)
+input_path     <- opts$input
+
+# Check file format
+if (!grepl("\\.csv$", input_path)) {
+  stop("Input file must be a CSV file.")
+}
+
 stroke <- load_stroke_data(input_path)
 
 #Rename columns to all lowercase
