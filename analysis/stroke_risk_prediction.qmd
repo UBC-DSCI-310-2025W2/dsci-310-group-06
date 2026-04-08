@@ -185,18 +185,18 @@ with stroke. Consequently, this provided us with valuable insights into
 the variables that needed further investigation below and those that
 could be excluded due to their lack of significance in our analysis.
 
-::: {layout-ncol="2"}
+     
 ![Pairwise relationships among selected stroke
 predictors](../results/figures/01_ggpairs-plot.png){#fig-pairs}
-:::
+  
 
 As seen in @fig-gender, there was no significant difference between
 males and females in terms of the percentage of stroke cases.
 
-::: {layout-ncol="2"}
+     
 ![Percentage of stroke cases by
 gender](../results/figures/02_stroke-by-gender.png){#fig-gender}
-:::
+  
 
 With regards to age (@fig-age), the proportion of stroke cases is very
 low among younger patients and increases noticeably at older ages. In
@@ -204,34 +204,34 @@ particular, the proportion begins to rise after around age 50 and
 becomes much more pronounced among patients over 60. This suggests that
 age is one of the strongest predictors of stroke in the dataset.
 
-::: {layout-ncol="2"}
+     
 ![Proportion of stroke cases by age
 group](../results/figures/03_stroke-by-age.png){#fig-age}
-:::
+  
 
 Patients with hypertension (@fig-hypertension) and heart disease
 (@fig-heartdisease) are roughly twice as likely to have a stroke, which
 is around 12.5% of the cases.
 
-::: {layout-ncol="2"}
+     
 ![Hypertension](../results/figures/04_stroke-by-hypertension.png){#fig-hypertension}
-:::
+  
 
 Those who have suffered heart disease (@fig-heartdisease) are roughly
 twice as likely to have a stroke, which is around 20-25% of the cases.
 
-::: {layout-ncol="2"}
+     
 ![Heart
 Disease](../results/figures/05_stroke-by-heart-disease.png){#fig-heartdisease}
-:::
+  
 
 Conversely, there is no significant difference in likelihood for those
 residing in urban versus rural areas (@fig-residence).
 
-::: {layout-ncol="2"}
+     
 ![Percentage of stroke cases by type of
 residence](../results/figures/06_stroke-by-residence.png){#fig-residence}
-:::
+  
 
 There is an association between stroke cases and average glucose level
 (@fig-glucose). Patients who had experienced a stroke tend to have
@@ -239,20 +239,20 @@ higher glucose levels on average than those who had not. While there is
 overlap between the two groups, the stroke group shows a higher center
 and a wider spread.
 
-::: {layout-ncol="2"}
+     
 ![Average glucose level by stroke
 status](../results/figures/07_glucose-by-stroke.png){#fig-glucose}
-:::
+  
 
 BMI (@fig-bmi) appears to be somewhat associated with stroke status,
 although the separation is weaker than for age. Patients with a prior
 stroke tend to have slightly higher BMI values on average, but there is
 substantial overlap between the two groups.
 
-::: {layout-ncol="2"}
+     
 ![BMI by stroke
 status](../results/figures/08_bmi-by-stroke.png){#fig-bmi}
-:::
+  
 
 The percentage of cases are quite similar between the three groups.
 However, those who have formerly smoked have a slightly higher risk of
@@ -265,9 +265,9 @@ same likelihood of suffering a stroke as those who currently smoke. This
 means that other lifestyle factors likely play a significant role in the
 risk of getting a stroke.
 
-::: {layout-ncol="2"}
+     
 ![Stroke by smoke status](../results/figures/09_stroke-by-smoking.png)
-:::
+  
 
 Those who are self-employed are roughly twice as likely to suffer a
 stroke than those who work in government or in the private sector, at
@@ -276,9 +276,9 @@ participants being in more incidents where their blood pressure is high
 because of the uncertainties that are associated with being in that work
 type.
 
-::: {layout-ncol="2"}
+     
 ![Stroke by work type](../results/figures/10_stroke-by-work-type.png)
-:::
+  
 
 ## Further Analysis
 
@@ -288,10 +288,10 @@ relations to strokes. By examining their associations with stroke, we
 aimed to uncover potential interrelations and gain deeper insights into
 their significance.
 
-::: {layout-ncol="2"}
+     
 ![Stroke by age and
 gender](../results/figures/11_stroke-by-age-gender.png)
-:::
+  
 
 While in our initial analysis, Gender was found to not be a good
 predictor of strokes, we decided to see if there was a correlation
@@ -302,10 +302,10 @@ model as we were interested in this difference as there is a chance some
 participants in the female population were pregnant, making blood more
 likely clot which could cause a stroke.
 
-::: {layout-ncol="2"}
+     
 ![Stroke by age and
 smoking](../results/figures/12_stroke-by-age-smoking.png)
-:::
+  
 
 All smoking groups had roughly equal numbers of stroke cases with the
 common ground being that with age, there was an average increase in
@@ -319,10 +319,10 @@ suggests a relationship that has been observed in the past, where
 stopping smoking for 5 years reduced the risk of stroke comparable to
 that of a nonsmoker in most cases [@shah2010].
 
-::: {layout-ncol="2"}
+     
 ![Stroke by hypertension and heart
 disease](../results/figures/13_stroke-by-hypertension-heart-disease.png)
-:::
+  
 
 In general, individuals without hypertension and heart disease have the
 lowest likelihood of having had a stroke, with a prevalence of less than
@@ -332,29 +332,29 @@ heart disease have a lower likelihood, less than 18%, while those with
 only hypertension have an approximate 13% likelihood of having had a
 stroke.
 
-::: {layout-ncol="2"}
+     
 ![Stroke by gender and heart
 disease](../results/figures/14_stroke-by-gender-heart-disease.png)
-:::
+  
 
 While there isn't a strong association between heart disease and gender,
 both male and female participants with heart disease have a notably
 higher likelihood of having had a stroke compared to those without a
 heart condition.
 
-::: {layout-ncol="2"}
+     
 ![Stroke by age and bmi](../results/figures/15_stroke-by-age-bmi.png)
-:::
+  
 
 Age seems to be the main predictor of stroke when BMI is roughly under
 25. However, this is not for a majority of the cases. Most cases where
 participants have suffered a stroke, they tend to be above 50 years old
 and have a BMI of greater than 25.
 
-::: {layout-ncol="2"}
+     
 ![Stroke by glucose and
 bmi](../results/figures/16_stroke-by-glucose-bmi.png)
-:::
+  
 
 Our analysis suggests that participants with a BMI of 25 or higher make
 up a majority of the instances of strokes regardless of average glucose
@@ -364,10 +364,10 @@ stronger predictor of whether someone had a stroke, but maintaining
 glucose levels at under 150 and BMI under 25 may reduce the risks of
 stroke.
 
-::: {layout-ncol="2"}
+     
 ![Stroke by glucose with hypertension and heart
 disease](../results/figures/17_stroke-by-glucose-hypertension-heart-disease.png)
-:::
+  
 
 **Stroke Cases by Average Glucose Levels and Hypertension**
 
@@ -391,12 +391,12 @@ heart disease exhibit a slightly higher proportion of stroke cases
 overall, but glucose level alone does not clearly distinguish between
 stroke and non-stroke outcomes.
 
-::: {layout-ncol="2"}
+     
 ![Stroke by residence with heart disease and
 hypertension](../results/figures/18_stroke-by-residence-heart-disease-hypertension.png)
 ![Stroke by residence with heart disease and
 hypertension](../results/figures/19_stroke-percentages-by-residence-heart-disease-hypertension.png)
-:::
+  
 
 [**Stroke Cases by Type of Residence and Heart Disease**]{.underline}
 
@@ -481,10 +481,10 @@ both for sensitivity and specificity.
 #| label: knn-coarse-results
 knn_coarse
 ```
-::: {layout-ncol="2"}
+     
 ![J-Index vs \# of Neighbours for kNN
 Model](../results/figures/20_coarse-knn-k-sweep.png){#fig-coarse-tuning}
-:::
+  
 
 We first performed a coarse sweep of neighbors from 0 to 200 stepping by
 10. We found that performance was best at
@@ -518,9 +518,9 @@ J-index obtained:
 knn_val
 ```
 
-::: {layout-ncol="2"}
+     
 ![knn confusion matrix](../results/figures/21_knn-confusion-matrix.png)
-:::
+  
 
 We get a final score of
 `{r} knn_val |> filter(.metric == "j_index") |> pull(.estimate) |> round(3)`,
@@ -573,10 +573,10 @@ model to be tested on the validation set.
 logreg_val
 ```
 
-::: {layout-ncol="2"}
+     
 ![logreg confusion
 matrix](../results/figures/22_logreg-confusion-matrix.png)
-:::
+  
 
 The logistic model resulted in a substantial improvement over the kNN
 model. The number of false positives is also reduced compared to the kNN
@@ -596,10 +596,10 @@ For the **XGBoost model**, we analyzed feature importance. Age and
 average glucose level emerged as the most critical features
 (@fig-xgb-vip).
 
-::: {layout-ncol="2"}
+     
 ![XGBoost Feature
 Importance](../results/figures/23_xgboost-feature-importance.png){#fig-xgb-vip}
-:::
+  
 
 Features with importance that are near zero mainly contribute noise
 without improving prediction. However, due to the dummy step on
@@ -636,28 +636,28 @@ above and will be used to train the final model.
 xgb_val
 ```
 
-::: {layout-ncol="2"}
+     
 ![XGBoost Feature
 Importance](../results/figures/24_xgboost-confusion-matrix.png){#fig-xgb-cm}
-:::
+  
 
 ## Model Selection
 
 We compared the three models on the validation set using J-index,
 sensitivity, and accuracy (@fig-metrics).
 
-::: {layout-ncol="2"}
+     
 ![Validation Set Metrics by
 Model](../results/figures/25_validation-metrics-comparison.png){#fig-metrics}
-:::
+  
 
 Inspecting the confusion matrices in @fig-cms, we can evaluate how each
 model handled false positives and false negatives.
 
-::: {layout-ncol="2"}
+     
 ![Confusion Matrices on Validation
 Set](../results/figures/26_validation-confusion-matrices.png){#fig-cms}
-:::
+  
 
 Looking at the three models, XGBoost performed the best in terms of J-Index. Inspecting the confusion matrices, we can see that it outperformed both the kNN and Logistic Regression models in terms of sensitivity, successfully eliminating all False Negatives (0). While the XGBoost model produced a higher number of False Positives (163) compared to kNN (118) and Logistic Regression (95), its perfect capture of positive stroke cases significantly boosted its overall performance. As the J-index metric weights both sensitivity and specificity equally, we will select the XGBoost model as our final candidate.
 
@@ -672,10 +672,10 @@ The best model was evaluated on the held-out test set. It achieved a
 final J-index of
 **`r test_metrics |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`**.
 
-::: {layout-ncol="2"}
+     
 ![Final Model Confusion Matrix on Test
 Set](../results/figures/27_final-model-test-confusion.png){#fig-final-cm}
-:::
+  
 
 # Discussion
 
@@ -753,7 +753,6 @@ fat mass associate with all-cause mortality, and in our specific case,
 stroke.
 
 # References
-
-::: {#refs}
+:::{#refs}
 :::
 
