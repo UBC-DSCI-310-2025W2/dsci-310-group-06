@@ -39,11 +39,14 @@ stroke_summary  <- read_csv("../results/tables/01_summary-stats.csv")
 knn_coarse      <- read_csv("../results/tables/02_coarse-knn-cv-results.csv")
 knn_fine        <- read_csv("../results/tables/03_fine-knn-cv-results.csv")
 knn_val         <- read_csv("../results/tables/04_knn-validation-metrics.csv")
+knn_cm   <- read_csv("../results/tables/05_knn-confusion-matrix.csv")
 logreg_terms    <- read_csv("../results/tables/06_logreg-backward-selection-terms.csv")
 logreg_params   <- read_csv("../results/tables/07_logreg-best-params.csv")
 logreg_val     <- read_csv("../results/tables/08_logreg-validation-metrics.csv")
+log_cm   <- read_csv("../results/tables/09_logreg-confusion-matrix.csv")
 xgb_params      <- read_csv("../results/tables/10_xgboost-best-params.csv")
 xgb_val         <- read_csv("../results/tables/11_xgboost-validation-metrics.csv")
+xgb_cm   <- read_csv("../results/tables/12_xgboost-confusion-matrix.csv")
 val_metrics     <- read_csv("../results/tables/13_all-validation-metrics.csv")
 test_metrics    <- read_csv("../results/tables/14_final-model-test-metrics.csv")
 ```
@@ -95,8 +98,8 @@ challenge by **exploring the ability to accurately predict the
 likelihood of a stroke in a patient given a set of clinical features**.
 
 To answer this research question, we will be utilizing the Stroke
-Prediction Dataset, available via Kaggle. The dataset comprises 5110
-observations and contains 12 different variables which make up our
+Prediction Dataset, available via Kaggle. The dataset comprises `{r} nrow(stroke)`
+observations and contains `{r} ncol(stroke)` different variables which make up our
 clinical features for patients. These variables include gender, age,
 hypertension, heart disease, marriage status, type of work
 (self-employed/private/children/government/never worked), residence
@@ -185,18 +188,14 @@ with stroke. Consequently, this provided us with valuable insights into
 the variables that needed further investigation below and those that
 could be excluded due to their lack of significance in our analysis.
 
-     
 ![Pairwise relationships among selected stroke
 predictors](../results/figures/01_ggpairs-plot.png){#fig-pairs}
-  
 
 As seen in @fig-gender, there was no significant difference between
 males and females in terms of the percentage of stroke cases.
 
-     
 ![Percentage of stroke cases by
 gender](../results/figures/02_stroke-by-gender.png){#fig-gender}
-  
 
 With regards to age (@fig-age), the proportion of stroke cases is very
 low among younger patients and increases noticeably at older ages. In
@@ -204,34 +203,25 @@ particular, the proportion begins to rise after around age 50 and
 becomes much more pronounced among patients over 60. This suggests that
 age is one of the strongest predictors of stroke in the dataset.
 
-     
 ![Proportion of stroke cases by age
 group](../results/figures/03_stroke-by-age.png){#fig-age}
-  
 
 Patients with hypertension (@fig-hypertension) and heart disease
 (@fig-heartdisease) are roughly twice as likely to have a stroke, which
-is around 12.5% of the cases.
+is around `{r} stroke_training |> filter(hypertension == "Yes") |> summarize(prop = mean(stroke == "Yes")) |> pull(prop) |> scales::percent(accuracy = 0.1)` of the cases.
 
-     
 ![Hypertension](../results/figures/04_stroke-by-hypertension.png){#fig-hypertension}
-  
 
-Those who have suffered heart disease (@fig-heartdisease) are roughly
-twice as likely to have a stroke, which is around 20-25% of the cases.
+Those who have suffered heart disease (@fig-heartdisease) are roughly `{r} round((stroke_training |> filter(heart_disease == "Yes") |> summarize(p = mean(stroke == "Yes")) |> pull(p)) / (stroke_training |> filter(heart_disease == "No") |> summarize(p = mean(stroke == "Yes")) |> pull(p)), 0)` times as likely to have a stroke, which is around `{r} stroke_training |> filter(heart_disease == "Yes") |> summarize(p = mean(stroke == "Yes")) |> pull(p) |> scales::percent(accuracy = 1)` of the cases.
 
-     
 ![Heart
 Disease](../results/figures/05_stroke-by-heart-disease.png){#fig-heartdisease}
-  
 
 Conversely, there is no significant difference in likelihood for those
 residing in urban versus rural areas (@fig-residence).
 
-     
 ![Percentage of stroke cases by type of
 residence](../results/figures/06_stroke-by-residence.png){#fig-residence}
-  
 
 There is an association between stroke cases and average glucose level
 (@fig-glucose). Patients who had experienced a stroke tend to have
@@ -239,20 +229,16 @@ higher glucose levels on average than those who had not. While there is
 overlap between the two groups, the stroke group shows a higher center
 and a wider spread.
 
-     
 ![Average glucose level by stroke
 status](../results/figures/07_glucose-by-stroke.png){#fig-glucose}
-  
 
 BMI (@fig-bmi) appears to be somewhat associated with stroke status,
 although the separation is weaker than for age. Patients with a prior
 stroke tend to have slightly higher BMI values on average, but there is
 substantial overlap between the two groups.
 
-     
 ![BMI by stroke
 status](../results/figures/08_bmi-by-stroke.png){#fig-bmi}
-  
 
 The percentage of cases are quite similar between the three groups.
 However, those who have formerly smoked have a slightly higher risk of
@@ -265,20 +251,11 @@ same likelihood of suffering a stroke as those who currently smoke. This
 means that other lifestyle factors likely play a significant role in the
 risk of getting a stroke.
 
-     
 ![Stroke by smoke status](../results/figures/09_stroke-by-smoking.png)
-  
 
-Those who are self-employed are roughly twice as likely to suffer a
-stroke than those who work in government or in the private sector, at
-around 20% of cases. Potentially, this is due to self employed
-participants being in more incidents where their blood pressure is high
-because of the uncertainties that are associated with being in that work
-type.
+Those who are self-employed are roughly `{r} round((stroke_training |> filter(work_type == "Self-employed") |> summarize(p = mean(stroke == "Yes")) |> pull(p)) / (stroke |> filter(work_type != "Self-employed") |> summarize(p = mean(stroke == "Yes")) |> pull(p)), 0)` times as likely to suffer a stroke than those who work in other sectors, at around `{r} stroke_training |> filter(work_type == "Self-employed") |> summarize(p = mean(stroke == "Yes")) |> pull(p) |> scales::percent(accuracy = 1)` of cases.
 
-     
 ![Stroke by work type](../results/figures/10_stroke-by-work-type.png)
-  
 
 ## Further Analysis
 
@@ -288,10 +265,8 @@ relations to strokes. By examining their associations with stroke, we
 aimed to uncover potential interrelations and gain deeper insights into
 their significance.
 
-     
 ![Stroke by age and
 gender](../results/figures/11_stroke-by-age-gender.png)
-  
 
 While in our initial analysis, Gender was found to not be a good
 predictor of strokes, we decided to see if there was a correlation
@@ -302,59 +277,38 @@ model as we were interested in this difference as there is a chance some
 participants in the female population were pregnant, making blood more
 likely clot which could cause a stroke.
 
-     
 ![Stroke by age and
 smoking](../results/figures/12_stroke-by-age-smoking.png)
-  
 
-All smoking groups had roughly equal numbers of stroke cases with the
-common ground being that with age, there was an average increase in
-percentage of strokes. The main difference is that the peak percentage
-was highest in the group that currently “smokes” at around 50%. The
-“never” smoking and “formerly” smoking groups peaked at percentages
-between 40% to 50%. Interestingly, former smokers had higher percentages
+All smoking groups had roughly equal numbers of stroke cases with the common ground being that with age, there was an average increase in percentage of strokes. The main difference is that the peak percentage was highest in the group that currently “smokes” at `{r} stroke_training |> filter(smoking_status == "Smokes") |> group_by(age = cut_interval(age, n = 5)) |> summarize(p = mean(stroke == "Yes")) |> pull(p) |> max() |> scales::percent(accuracy = 1)`. The “never” smoking and “formerly” smoking groups peaked at `{r} stroke_training |> filter(smoking_status == "Never") |> group_by(age = cut_interval(age, n = 5)) |> summarize(p = mean(stroke == "Yes")) |> pull(p) |> max() |> scales::percent(accuracy = 1)` and `{r} stroke_training |> filter(smoking_status == "Formerly") |> group_by(age = cut_interval(age, n = 5)) |> summarize(p = mean(stroke == "Yes")) |> pull(p) |> max() |> scales::percent(accuracy = 1)`, respectively. Interestingly, former smokers had higher percentages
 than those who never smoked. Both of those groups had lower percentages
 in comparison to current smokers, especially as age increases. This
 suggests a relationship that has been observed in the past, where
 stopping smoking for 5 years reduced the risk of stroke comparable to
 that of a nonsmoker in most cases [@shah2010].
 
-     
 ![Stroke by hypertension and heart
 disease](../results/figures/13_stroke-by-hypertension-heart-disease.png)
-  
 
-In general, individuals without hypertension and heart disease have the
-lowest likelihood of having had a stroke, with a prevalence of less than
-5%. However, those with both hypertension and heart disease exhibit the
-highest percentage, around 18%, of stroke cases. Participants with only
-heart disease have a lower likelihood, less than 18%, while those with
-only hypertension have an approximate 13% likelihood of having had a
-stroke.
+In general, individuals without hypertension and heart disease have the lowest likelihood of having had a stroke, with a prevalence of `{r} stroke_training |> filter(hypertension == "No" & heart_disease == "No") |> summarize(p = mean(stroke == "Yes")) |> pull(p) |> scales::percent(accuracy = 0.1)`. However, those with both hypertension and heart disease exhibit the highest percentage, around `{r} stroke_training |> filter(hypertension == "Yes" & heart_disease == "Yes") |> summarize(p = mean(stroke == "Yes")) |> pull(p) |> scales::percent(accuracy = 1)`, of stroke cases. Participants with only heart disease have a lower likelihood, `{r} stroke_training |> filter(hypertension == "No" & heart_disease == "Yes") |> summarize(p = mean(stroke == "Yes")) |> pull(p) |> scales::percent(accuracy = 1)`, while those with only hypertension have an approximate `{r} stroke_training |> filter(hypertension == "Yes" & heart_disease == "No") |> summarize(p = mean(stroke == "Yes")) |> pull(p) |> scales::percent(accuracy = 1)` likelihood of having had a stroke.
 
-     
 ![Stroke by gender and heart
 disease](../results/figures/14_stroke-by-gender-heart-disease.png)
-  
 
 While there isn't a strong association between heart disease and gender,
 both male and female participants with heart disease have a notably
 higher likelihood of having had a stroke compared to those without a
 heart condition.
 
-     
 ![Stroke by age and bmi](../results/figures/15_stroke-by-age-bmi.png)
-  
 
 Age seems to be the main predictor of stroke when BMI is roughly under
 25. However, this is not for a majority of the cases. Most cases where
 participants have suffered a stroke, they tend to be above 50 years old
 and have a BMI of greater than 25.
 
-     
 ![Stroke by glucose and
 bmi](../results/figures/16_stroke-by-glucose-bmi.png)
-  
 
 Our analysis suggests that participants with a BMI of 25 or higher make
 up a majority of the instances of strokes regardless of average glucose
@@ -364,10 +318,8 @@ stronger predictor of whether someone had a stroke, but maintaining
 glucose levels at under 150 and BMI under 25 may reduce the risks of
 stroke.
 
-     
 ![Stroke by glucose with hypertension and heart
 disease](../results/figures/17_stroke-by-glucose-hypertension-heart-disease.png)
-  
 
 **Stroke Cases by Average Glucose Levels and Hypertension**
 
@@ -391,12 +343,10 @@ heart disease exhibit a slightly higher proportion of stroke cases
 overall, but glucose level alone does not clearly distinguish between
 stroke and non-stroke outcomes.
 
-     
 ![Stroke by residence with heart disease and
 hypertension](../results/figures/18_stroke-by-residence-heart-disease-hypertension.png)
 ![Stroke by residence with heart disease and
 hypertension](../results/figures/19_stroke-percentages-by-residence-heart-disease-hypertension.png)
-  
 
 [**Stroke Cases by Type of Residence and Heart Disease**]{.underline}
 
@@ -470,40 +420,26 @@ scaled as described above.
 
 #### Hyperparameter Tuning
 
-We will tune the neighbors parameter via 5-fold cross-validation with a
-coarse sweep from 1 to 50 neighbors, incrementing by 5 neighbors,
-followed by a finer sweep. We will use Youden's J statistic to evaluate
-model performance as accuracy may improperly "mask" a poorly predictive
-model due to the class imbalance present. Youden's J statistic accounts
-both for sensitivity and specificity.
+We tuned the neighbors parameter via 5-fold cross-validation, performing a coarse sweep of neighbors from 0 to 200 stepping by 10. We will use Youden's J statistic to evaluate model performance as accuracy may improperly "mask" a poorly predictive model due to the class imbalance present. Youden's J statistic accounts for both sensitivity and specificity; a value of 1 indicates a perfect classifier, while a value of 0 indicates the model performs no better than random guessing.
 
 ```{r}
 #| label: knn-coarse-results
 knn_coarse
 ```
-     
+
 ![J-Index vs \# of Neighbours for kNN
 Model](../results/figures/20_coarse-knn-k-sweep.png){#fig-coarse-tuning}
-  
 
-We first performed a coarse sweep of neighbors from 0 to 200 stepping by
-10. We found that performance was best at
-k=`r knn_coarse |> filter(.metric == "j_index") |> arrange(desc(mean)) |> head(n=1) |> pull(neighbors)`
-(@fig-coarse-tuning).
+We found that performance was best at k = `{r} knn_coarse |> filter(.metric == "j_index") |> arrange(desc(mean)) |> slice(1) |> pull(neighbors)` (@fig-coarse-tuning).
 
-From @fig-coarse-tuning, we can see that model performance increases
-steadily as the number of neighbors increases, reaching a plateau around
-150. We will conduct a finer search around the 150-180 neighbour range
-to land on a final value.
+From @fig-coarse-tuning, we can see that model performance increases steadily as the number of neighbors increases, reaching a plateau around `{r} knn_coarse |> filter(.metric == "j_index") |> arrange(desc(mean)) |> slice(1) |> pull(neighbors)`. This suggests that in this dataset, a larger neighborhood is necessary to provide a stable decision boundary amidst the infrequent stroke cases. Based on this plateau, we will conduct a finer search around the `{r} knn_coarse |> filter(.metric == "j_index") |> arrange(desc(mean)) |> slice(1) |> pull(neighbors)`–200 neighbor range to land on a final value for our classifier.
 
 ```{r}
 #| label: knn-fine-results
 knn_fine 
 ```
 
-It was found that `k=159` results in the highest score on our training
-dataset. We will use this value to develop our final kNN model with
-`neighbors=159`.
+It was found that k = `{r} knn_fine |> filter(.metric == "j_index") |> arrange(desc(mean)) |> slice(1) |> pull(neighbors)` results in the highest score on our training dataset. We will use this value to develop our final kNN model with neighbors = `{r} knn_fine |> filter(.metric == "j_index") |> arrange(desc(mean)) |> slice(1) |> pull(neighbors)`.
 
 #### Evaluation on Validation Set
 
@@ -518,9 +454,7 @@ J-index obtained:
 knn_val
 ```
 
-     
 ![knn confusion matrix](../results/figures/21_knn-confusion-matrix.png)
-  
 
 We get a final score of
 `{r} knn_val |> filter(.metric == "j_index") |> pull(.estimate) |> round(3)`,
@@ -573,10 +507,8 @@ model to be tested on the validation set.
 logreg_val
 ```
 
-     
 ![logreg confusion
 matrix](../results/figures/22_logreg-confusion-matrix.png)
-  
 
 The logistic model resulted in a substantial improvement over the kNN
 model. The number of false positives is also reduced compared to the kNN
@@ -596,10 +528,8 @@ For the **XGBoost model**, we analyzed feature importance. Age and
 average glucose level emerged as the most critical features
 (@fig-xgb-vip).
 
-     
 ![XGBoost Feature
 Importance](../results/figures/23_xgboost-feature-importance.png){#fig-xgb-vip}
-  
 
 Features with importance that are near zero mainly contribute noise
 without improving prediction. However, due to the dummy step on
@@ -636,31 +566,24 @@ above and will be used to train the final model.
 xgb_val
 ```
 
-     
 ![XGBoost Feature
 Importance](../results/figures/24_xgboost-confusion-matrix.png){#fig-xgb-cm}
-  
 
 ## Model Selection
 
 We compared the three models on the validation set using J-index,
 sensitivity, and accuracy (@fig-metrics).
 
-     
 ![Validation Set Metrics by
 Model](../results/figures/25_validation-metrics-comparison.png){#fig-metrics}
-  
 
 Inspecting the confusion matrices in @fig-cms, we can evaluate how each
 model handled false positives and false negatives.
 
-     
 ![Confusion Matrices on Validation
 Set](../results/figures/26_validation-confusion-matrices.png){#fig-cms}
-  
 
-Looking at the three models, XGBoost performed the best in terms of J-Index. Inspecting the confusion matrices, we can see that it outperformed both the kNN and Logistic Regression models in terms of sensitivity, successfully eliminating all False Negatives (0). While the XGBoost model produced a higher number of False Positives (163) compared to kNN (118) and Logistic Regression (95), its perfect capture of positive stroke cases significantly boosted its overall performance. As the J-index metric weights both sensitivity and specificity equally, we will select the XGBoost model as our final candidate.
-
+Looking at the three models, XGBoost performed the best in terms of J-Index. Inspecting the confusion matrices, we can see that it outperformed both the kNN and Logistic Regression models in terms of sensitivity, successfully eliminating all False Negatives (`{r} xgb_cm |> filter(Truth == "Yes", Prediction == "No") |> pull(n)`). While the XGBoost model produced a higher number of False Positives (`{r} xgb_cm |> filter(Truth == "No", Prediction == "Yes") |> pull(n)`) compared to kNN (`{r} knn_cm |> filter(Truth == "No", Prediction == "Yes") |> pull(n)`) and Logistic Regression (`{r} log_cm |> filter(Truth == "No", Prediction == "Yes") |> pull(n)`), its perfect capture of positive stroke cases significantly boosted its overall performance. As the J-index metric weights both sensitivity and specificity equally, we will select the XGBoost model as our final candidate.
 # Final Evaluation
 
 ```{r}
@@ -672,10 +595,8 @@ The best model was evaluated on the held-out test set. It achieved a
 final J-index of
 **`r test_metrics |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`**.
 
-     
 ![Final Model Confusion Matrix on Test
 Set](../results/figures/27_final-model-test-confusion.png){#fig-final-cm}
-  
 
 # Discussion
 
@@ -753,6 +674,6 @@ fat mass associate with all-cause mortality, and in our specific case,
 stroke.
 
 # References
-:::{#refs}
-:::
 
+::: {#refs}
+:::
