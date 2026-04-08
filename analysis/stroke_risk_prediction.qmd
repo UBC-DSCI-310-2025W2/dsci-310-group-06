@@ -28,6 +28,7 @@ editor:
 ```{r setup}
 #| include: false
 library(tidyverse)
+library(themis)
 library(knitr)
 library(kableExtra)
 
@@ -467,15 +468,6 @@ Now that we have finalized the features that will be used in the model,
 we define the final `recipe` that will be used. The predictors are
 scaled as described above.
 
-```{r}
-stroke_recipe <- recipe(stroke ~ gender+age+hypertension+heart_disease+residence_type+avg_glucose_level+bmi+smoking_status, data = stroke_training) |> 
-            step_YeoJohnson(all_numeric_predictors()) |>
-            step_scale(all_numeric_predictors()) |> 
-            step_center(all_numeric_predictors()) |>
-            step_dummy(all_nominal_predictors()) |>
-            step_smote(stroke) 
-```
-
 #### Hyperparameter Tuning
 
 We will tune the neighbors parameter via 5-fold cross-validation with a
@@ -489,9 +481,10 @@ both for sensitivity and specificity.
 #| label: knn-coarse-results
 knn_coarse
 ```
-
+::: {layout-ncol="2"}
 ![J-Index vs \# of Neighbours for kNN
 Model](../results/figures/20_coarse-knn-k-sweep.png){#fig-coarse-tuning}
+:::
 
 We first performed a coarse sweep of neighbors from 0 to 200 stepping by
 10. We found that performance was best at
@@ -516,13 +509,6 @@ dataset. We will use this value to develop our final kNN model with
 
 We train our final model and fit it against our training dataset.
 
-```{r}
-knn_stroke_fit <- workflow() |> 
-  add_model(knn_model_final) |> 
-  add_recipe(stroke_recipe) |> 
-  fit(data = stroke_training)
-```
-
 We used the model trained with the optimal number of neighbors, and then
 use it to predict new values using our validation set and calculate the
 J-index obtained:
@@ -536,69 +522,160 @@ knn_val
 ![knn confusion matrix](../results/figures/21_knn-confusion-matrix.png)
 :::
 
-We get a final score of 0.4691, which is not too good as the metric is
-on a scale from \[0,1\]. From the confusion matrix, we can see that the
-model is predicting a lot of True negatives.
+We get a final score of
+`{r} knn_val |> filter(.metric == "j_index") |> pull(.estimate) |> round(3)`,
+which is not too good as the metric is on a scale from \[0,1\]. From the
+confusion matrix, we can see that the model is predicting a lot of True
+negatives.
 
 ### Logistic Regression
 
-For the logistic regression model, we performed backwards selection to
-identify the most informative predictors. Age, average glucose level,
-and the presence of pre-existing heart disease emerged as the strongest
-predictors of stroke. We then tuned the penalty and mixture parameters
-for the final model, with the best performance achieved at a penalty of
-`r logreg_params |> filter(.metric == "j_index") |> arrange(desc(mean)) |> head(n=1) |> pull(penalty)`
-and a mixture of
-`r logreg_params |> filter(.metric == "j_index") |> arrange(desc(mean)) |> head(n=1) |> pull(mixture)`.
-Evaluating the final logistic regression model on the validation set
-yielded a J-index of
-`r logreg_val |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`.
+Logistic regression is another model type that can be used for
+classification tasks. It models the log-odds of the outcome as a linear
+combination of predictors. We will additionally use backward stepwise
+selection to prune non-informative terms, and tune an elastic-net
+penalty to regularize the retained coefficients.
+
+#### Backward Selection
+
+We first define a recipe without SMOTE to maintain the class
+distribution in the original dataset during backward selection.
+
+The backward selection procedure removes predictors that do not improve
+the AIC, and resulted in only the terms left above. We will use the
+selected terms below in the final model.
+
+```{r}
+#| label: logreg-backward-selection-terms
+logreg_terms
+```
+
+#### Hyperparameter Tuning
+
+We add SMOTE back in for the tuning phase. The elastic-net penalty and
+regularisation strength are tuned at the same time over a 10 by 10 grid
+using 5-fold cross-validation evaluated by J-index as in the kNN model:
+
+```{r}
+#| label: logreg-backward-selection-params
+logreg_params
+```
+
+The best performing model had penalty = `{r} logreg_params$penalty` and
+mixture = `{r} logreg_params$mixture`, which corresponds to a pure ridge
+regression model. We will use these hyperparameters to create the final
+model to be tested on the validation set.
+
+#### Evaluation on Validation Set
+
+```{r}
+#| label: logreg-val-metrics
+logreg_val
+```
+
+::: {layout-ncol="2"}
+![logreg confusion
+matrix](../results/figures/22_logreg-confusion-matrix.png)
+:::
+
+The logistic model resulted in a substantial improvement over the kNN
+model. The number of false positives is also reduced compared to the kNN
+model.
 
 ## XGBoost
+
+XGBoost is a gradient-boosted tree ensemble that naturally captures
+non-linear relationships and feature interactions. We will first fit a
+preliminary model to rank feature importance, using the information to
+prune uninformative predictors, then tune the model's hyperparameters
+using Bayesian optimisation.
+
+#### Feature Importance
 
 For the **XGBoost model**, we analyzed feature importance. Age and
 average glucose level emerged as the most critical features
 (@fig-xgb-vip).
 
+::: {layout-ncol="2"}
 ![XGBoost Feature
 Importance](../results/figures/23_xgboost-feature-importance.png){#fig-xgb-vip}
+:::
 
-We then perform hyperparameter tuning on several key parameters such as
-number of trees, tree depth, learning rate, and minimum number of
-observations in a node. The best performance was achieved with
-`r xgb_params |> pull(trees)` trees, a tree depth of
-`r xgb_params |> pull(tree_depth)`, a learning rate of
-`r xgb_params |> pull(learn_rate) |> round(4)`, and a minimum number of
-observations in a node of `r xgb_params |> pull(min_n)`. Evaluating the
-final XGBoost model on the validation set yielded a J-index of
-`r xgb_val |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`.
+Features with importance that are near zero mainly contribute noise
+without improving prediction. However, due to the dummy step on
+catagorical predictors, we can see their their importance is split
+across its levels and thus the importance of the predictor must be
+interpreted as the sum of its importances across its derived dummy
+variables.
+
+Based on the importance ranking above, `age`, `avg_glucose_level`,
+`bmi`, `hypertension`, `heart_disease`, and `smoking_status` are
+informative while we can and drop categorical predictors that were
+consistently near the bottom such as `gender` .
+
+#### Bayesian Hyperparameter Tuning
+
+We tune six hyperparameters simultaneously using Bayesian optimisation
+(`tune_bayes`), which is more efficient than an exhaustive grid search
+for high-dimensional parameter spaces. We run 10 initial random
+evaluations followed by up to 30 Bayesian iterations, stopping early if
+10 consecutive iterations fail to improve J-index:
+
+```{r}
+#| label: xgb-parameters
+xgb_params
+```
+
+The best performing model was obtained with the hyperparameters listed
+above and will be used to train the final model.
+
+#### Evaluation on Validation Set
+
+```{r}
+#| label: xgb-val-metrics
+xgb_val
+```
+
+::: {layout-ncol="2"}
+![XGBoost Feature
+Importance](../results/figures/24_xgboost-confusion-matrix.png){#fig-xgb-cm}
+:::
 
 ## Model Selection
 
 We compared the three models on the validation set using J-index,
 sensitivity, and accuracy (@fig-metrics).
 
+::: {layout-ncol="2"}
 ![Validation Set Metrics by
 Model](../results/figures/25_validation-metrics-comparison.png){#fig-metrics}
+:::
 
 Inspecting the confusion matrices in @fig-cms, we can evaluate how each
 model handled false positives and false negatives.
 
+::: {layout-ncol="2"}
 ![Confusion Matrices on Validation
 Set](../results/figures/26_validation-confusion-matrices.png){#fig-cms}
+:::
 
-Based on the highest J-Index, the
-**`r val_metrics |> filter(.metric == "j_index") |> arrange(desc(.estimate)) |> slice(1) |> pull(model)`**
-model was selected as the best performing architecture.
+Looking at the three models, XGBoost performed the best in terms of J-Index. Inspecting the confusion matrices, we can see that it outperformed both the kNN and Logistic Regression models in terms of sensitivity, successfully eliminating all False Negatives (0). While the XGBoost model produced a higher number of False Positives (163) compared to kNN (118) and Logistic Regression (95), its perfect capture of positive stroke cases significantly boosted its overall performance. As the J-index metric weights both sensitivity and specificity equally, we will select the XGBoost model as our final candidate.
 
 # Final Evaluation
+
+```{r}
+#| label: final-test-metrics
+test_metrics
+```
 
 The best model was evaluated on the held-out test set. It achieved a
 final J-index of
 **`r test_metrics |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`**.
 
+::: {layout-ncol="2"}
 ![Final Model Confusion Matrix on Test
 Set](../results/figures/27_final-model-test-confusion.png){#fig-final-cm}
+:::
 
 # Discussion
 
@@ -679,3 +756,4 @@ stroke.
 
 ::: {#refs}
 :::
+
