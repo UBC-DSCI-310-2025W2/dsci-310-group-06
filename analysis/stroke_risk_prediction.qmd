@@ -18,6 +18,8 @@ execute:
   warning: false
   message: false
 bibliography: references.bib
+nocite: |
+  @*
 editor: 
   markdown: 
     wrap: 72
@@ -82,16 +84,69 @@ stroke occurrence is crucial for prevention and effective treatment. Age
 is widely recognized as the strongest determinant of stroke risk, with
 the likelihood of experiencing a stroke doubling every decade after the
 age of 55. Additionally, hypertension has been identified as the leading
-risk factor of stroke in both developing and developed nations
-[@donker2018].
+risk factor of stroke in both developing and developed nations.
 
-Our research question explores the ability to accurately predict the
-likelihood of a stroke in a patient given a set of clinical features.
-Utilizing the Stroke Prediction Dataset, which comprises of
-`r format(nrow(stroke), big.mark=",")`observations. We aim to identify patterns among these features and
-aid in the development of prevention strategies.
+However, it is worth noting that there are other risk factors that
+exist, some of which are challenging to quantify accurately. These
+factors contribute to the complexity of predicting likelihood of a
+stroke. In light of this, our research question aims to address this
+challenge by **exploring the ability to accurately predict the
+likelihood of a stroke in a patient given a set of clinical features**.
+
+To answer this research question, we will be utilizing the Stroke
+Prediction Dataset, available via Kaggle. The dataset comprises 5110
+observations and contains 12 different variables which make up our
+clinical features for patients. These variables include gender, age,
+hypertension, heart disease, marriage status, type of work
+(self-employed/private/children/government/never worked), residence
+(rural or urban), average glucose levels, BMI, smoking status, and
+whether the patient has ever had a stroke.
+
+By leveraging this dataset, we aim to identify patterns among these
+clinical features and the occurrence of stroke. This analysis will
+contribute to our understanding of the predictive power of these factors
+and potentially aid in the development of effective strategies for
+stroke prevention and management.
 
 # Methods and Results
+
+## Loading Data
+
+```{r}
+#| label: display-stroke-data
+#| echo: false
+#| message: false
+
+stroke
+```
+
+We will next clean/wrangle our data into a tidy format - this involves
+the following steps: renaming of columns, converting the string
+“Unknown” into NA values, converting categorical variables into factors,
+renaming these factors into human-readable names, converting columns
+that should be numerical into doubles. We will drop the rows with *NA*
+values from the dataset, so that we continue analysis only will
+fully-formed data.
+
+To predict whether a patient will experience a stroke, we will develop a
+k-nearest neighbors classification model. To do so, we need to split our
+dataset using part of it to train the model and the other part of it to
+test the model. The training data will be used to both select the
+features used in the final model and to tune the number of neighbors
+used in classification, and the testing data will be used to evaluate
+the model’s accuracy on unseen data.
+
+We will select an 80/10/10 split for training, validation, and test
+data, and will set `strata=stroke` to ensure that all sets have a
+proportionate amount of the outcome we are predicting.
+
+```{r}
+#| label: display-training-set
+#| echo: false
+#| message: false
+
+stroke_training
+```
 
 Our exploratory data analysis exclusively uses the training data set.
 Summary statistics for categorical and numeric variables are presented
@@ -106,35 +161,65 @@ stroke_summary %>%
   knitr::kable()
 ```
 
-# Visualizations Feature Selection
+# Visualizations and Justification for Feature Selection
 
-The `id` feature was removed as it has no biological impact on stroke
-occurrence. We employed `ggpairs` to identify correlations (@fig-pairs).
+Next, we need to determine which of the original datasets’ features will
+be useful in determining whether or not a patient will experience a
+stroke. This is called exploratory data analysis and we begin by
+plotting our features to visually determine if there is a correlation
+between the feature and the probability of a stroke.
 
+The first feature of the original dataset that will be removed from
+analysis is id - this simply corresponds to a patient’s ID and has no
+impact on whether or not a patient will have a stroke.
+
+## Preliminary Analysis
+
+To begin our analysis, we employed the ggpairs tool (@fig-pairs),
+enabling us to gain a holistic view of the dataset and its clinical
+variables. By generating a matrix where each variable was plotted
+against one another with whether a patient had a stroke before, we could
+visually identify variables that had correlations with one another or
+with stroke. Consequently, this provided us with valuable insights into
+the variables that needed further investigation below and those that
+could be excluded due to their lack of significance in our analysis.
+
+::: {layout-ncol="2"}
 ![Pairwise relationships among selected stroke
 predictors](../results/figures/01_ggpairs-plot.png){#fig-pairs}
-
-## Demographic and Clinical Predictors
+:::
 
 As seen in @fig-gender, there was no significant difference between
 males and females in terms of the percentage of stroke cases.
 
+::: {layout-ncol="2"}
 ![Percentage of stroke cases by
 gender](../results/figures/02_stroke-by-gender.png){#fig-gender}
+:::
 
-With regards to age (@fig-age), the proportion of stroke cases increases
-noticeably after age 50, suggesting it is one of the strongest
-predictors.
+With regards to age (@fig-age), the proportion of stroke cases is very
+low among younger patients and increases noticeably at older ages. In
+particular, the proportion begins to rise after around age 50 and
+becomes much more pronounced among patients over 60. This suggests that
+age is one of the strongest predictors of stroke in the dataset.
 
+::: {layout-ncol="2"}
 ![Proportion of stroke cases by age
 group](../results/figures/03_stroke-by-age.png){#fig-age}
+:::
 
 Patients with hypertension (@fig-hypertension) and heart disease
-(@fig-heartdisease) are roughly twice as likely to have a stroke.
+(@fig-heartdisease) are roughly twice as likely to have a stroke, which
+is around 12.5% of the cases.
 
 ::: {layout-ncol="2"}
 ![Hypertension](../results/figures/04_stroke-by-hypertension.png){#fig-hypertension}
+:::
 
+Those who have suffered heart disease (@fig-heartdisease) are roughly
+twice as likely to have a stroke, which is around 20-25% of the cases.
+
+::: {layout-ncol="2"}
 ![Heart
 Disease](../results/figures/05_stroke-by-heart-disease.png){#fig-heartdisease}
 :::
@@ -142,20 +227,196 @@ Disease](../results/figures/05_stroke-by-heart-disease.png){#fig-heartdisease}
 Conversely, there is no significant difference in likelihood for those
 residing in urban versus rural areas (@fig-residence).
 
+::: {layout-ncol="2"}
 ![Percentage of stroke cases by type of
 residence](../results/figures/06_stroke-by-residence.png){#fig-residence}
+:::
 
-## Metabolic Factors
-
-Patients who experienced a stroke tend to have higher average glucose
-levels (@fig-glucose) and slightly higher BMI (@fig-bmi).
+There is an association between stroke cases and average glucose level
+(@fig-glucose). Patients who had experienced a stroke tend to have
+higher glucose levels on average than those who had not. While there is
+overlap between the two groups, the stroke group shows a higher center
+and a wider spread.
 
 ::: {layout-ncol="2"}
 ![Average glucose level by stroke
 status](../results/figures/07_glucose-by-stroke.png){#fig-glucose}
-
-![BMI by stroke status](../results/figures/08_bmi-by-stroke.png){#fig-bmi}
 :::
+
+BMI (@fig-bmi) appears to be somewhat associated with stroke status,
+although the separation is weaker than for age. Patients with a prior
+stroke tend to have slightly higher BMI values on average, but there is
+substantial overlap between the two groups.
+
+::: {layout-ncol="2"}
+![BMI by stroke
+status](../results/figures/08_bmi-by-stroke.png){#fig-bmi}
+:::
+
+The percentage of cases are quite similar between the three groups.
+However, those who have formerly smoked have a slightly higher risk of
+stroke than those who smoke. This may be due to current smokers being
+younger or having less overall damage than those who are former smokers.
+Potentially, those who are former smokers may have been heavy smokers
+which could explain why they quit smoking compared to those who
+currently smoke. Interestingly, those who have never smoked have the
+same likelihood of suffering a stroke as those who currently smoke. This
+means that other lifestyle factors likely play a significant role in the
+risk of getting a stroke.
+
+::: {layout-ncol="2"}
+![Stroke by smoke status](../results/figures/09_stroke-by-smoking.png)
+:::
+
+Those who are self-employed are roughly twice as likely to suffer a
+stroke than those who work in government or in the private sector, at
+around 20% of cases. Potentially, this is due to self employed
+participants being in more incidents where their blood pressure is high
+because of the uncertainties that are associated with being in that work
+type.
+
+::: {layout-ncol="2"}
+![Stroke by work type](../results/figures/10_stroke-by-work-type.png)
+:::
+
+## Further Analysis
+
+To further explore the relationships between stroke and various clinical
+variables, we conducted an analysis focusing on two key variables in
+relations to strokes. By examining their associations with stroke, we
+aimed to uncover potential interrelations and gain deeper insights into
+their significance.
+
+::: {layout-ncol="2"}
+![Stroke by age and
+gender](../results/figures/11_stroke-by-age-gender.png)
+:::
+
+While in our initial analysis, Gender was found to not be a good
+predictor of strokes, we decided to see if there was a correlation
+between Age, Gender, and Strokes. It appears that the risk of stroke is
+slightly greater in older men than older women; however, age seems to be
+the more dominant feature. We decided to still consider gender in our
+model as we were interested in this difference as there is a chance some
+participants in the female population were pregnant, making blood more
+likely clot which could cause a stroke.
+
+::: {layout-ncol="2"}
+![Stroke by age and
+smoking](../results/figures/12_stroke-by-age-smoking.png)
+:::
+
+All smoking groups had roughly equal numbers of stroke cases with the
+common ground being that with age, there was an average increase in
+percentage of strokes. The main difference is that the peak percentage
+was highest in the group that currently “smokes” at around 50%. The
+“never” smoking and “formerly” smoking groups peaked at percentages
+between 40% to 50%. Interestingly, former smokers had higher percentages
+than those who never smoked. Both of those groups had lower percentages
+in comparison to current smokers, especially as age increases. This
+suggests a relationship that has been observed in the past, where
+stopping smoking for 5 years reduced the risk of stroke comparable to
+that of a nonsmoker in most cases [@shah2010].
+
+::: {layout-ncol="2"}
+![Stroke by hypertension and heart
+disease](../results/figures/13_stroke-by-hypertension-heart-disease.png)
+:::
+
+In general, individuals without hypertension and heart disease have the
+lowest likelihood of having had a stroke, with a prevalence of less than
+5%. However, those with both hypertension and heart disease exhibit the
+highest percentage, around 18%, of stroke cases. Participants with only
+heart disease have a lower likelihood, less than 18%, while those with
+only hypertension have an approximate 13% likelihood of having had a
+stroke.
+
+::: {layout-ncol="2"}
+![Stroke by gender and heart
+disease](../results/figures/14_stroke-by-gender-heart-disease.png)
+:::
+
+While there isn't a strong association between heart disease and gender,
+both male and female participants with heart disease have a notably
+higher likelihood of having had a stroke compared to those without a
+heart condition.
+
+::: {layout-ncol="2"}
+![Stroke by age and bmi](../results/figures/15_stroke-by-age-bmi.png)
+:::
+
+Age seems to be the main predictor of stroke when BMI is roughly under
+25. However, this is not for a majority of the cases. Most cases where
+participants have suffered a stroke, they tend to be above 50 years old
+and have a BMI of greater than 25.
+
+::: {layout-ncol="2"}
+![Stroke by glucose and
+bmi](../results/figures/16_stroke-by-glucose-bmi.png)
+:::
+
+Our analysis suggests that participants with a BMI of 25 or higher make
+up a majority of the instances of strokes regardless of average glucose
+levels. The majority of participants who did not suffer a stroke had
+average glucose levels of under 150. This tells us that BMI is a
+stronger predictor of whether someone had a stroke, but maintaining
+glucose levels at under 150 and BMI under 25 may reduce the risks of
+stroke.
+
+::: {layout-ncol="2"}
+![Stroke by glucose with hypertension and heart
+disease](../results/figures/17_stroke-by-glucose-hypertension-heart-disease.png)
+:::
+
+**Stroke Cases by Average Glucose Levels and Hypertension**
+
+Most observations where the participant did not suffer a stroke are
+associated with not having hypertension and with average glucose levels
+below approximately 125. Stroke cases appear somewhat more frequently
+among participants with higher glucose levels, but there remains
+substantial overlap between stroke and non-stroke observations.
+Participants with hypertension show a similar proportion of stroke cases
+across a range of glucose levels, suggesting that once hypertension is
+present, glucose level alone may not strongly differentiate stroke risk.
+
+**Stroke Cases by Average Glucose Levels and Heart Disease**
+
+A similar pattern appears when examining heart disease. Most non-stroke
+observations occur among participants without heart disease and with
+lower average glucose levels. Stroke cases appear somewhat more
+frequently at higher glucose levels, although the separation between
+stroke and non-stroke observations remains limited. Participants with
+heart disease exhibit a slightly higher proportion of stroke cases
+overall, but glucose level alone does not clearly distinguish between
+stroke and non-stroke outcomes.
+
+::: {layout-ncol="2"}
+![Stroke by residence with heart disease and
+hypertension](../results/figures/18_stroke-by-residence-heart-disease-hypertension.png)
+![Stroke by residence with heart disease and
+hypertension](../results/figures/19_stroke-percentages-by-residence-heart-disease-hypertension.png)
+:::
+
+[**Stroke Cases by Type of Residence and Heart Disease**]{.underline}
+
+The instances of stroke are roughly equal for those who have not
+experienced heart disease, regardless of their type of residence. Cases
+of strokes are also roughly equal between those who have experienced
+heart disease, regardless of their residence type. Most cases of no
+stroke are prevalent in those who did not experience heart disease and
+overall, there is a higher occurrence of strokes for those who have
+experienced heart disease.
+
+[**Stroke Cases by Residence Type and Hypertension**]{.underline}
+
+Regardless of one’s residence type, cases of strokes are roughly equal
+when one experiences hypertension. The prevalence of strokes in those
+who did not have hypertension is also equal in both urban and rural
+areas, and most cases of no stroke are present in those who do not have
+hypertension.
+
+This suggests that hypertension and heart disease are likely a stronger
+predictor of stroke than the type of residence one resides in.
 
 # Building The Model
 
@@ -168,21 +429,43 @@ determined to be too broad or uninformative.
 ## Model Comparison and Tuning
 
 ### kNN Model
-For the **kNN model**, we first performed a coarse sweep of neighbors from 0 to 200 stepping by 10. We found
-that performance was best at k=`r knn_coarse |> filter(.metric == "j_index") |> arrange(desc(mean)) |> head(n=1) |> pull(neighbors)` (@fig-coarse-tuning).
+
+For the **kNN model**, we first performed a coarse sweep of neighbors
+from 0 to 200 stepping by 10. We found that performance was best at
+k=`r knn_coarse |> filter(.metric == "j_index") |> arrange(desc(mean)) |> head(n=1) |> pull(neighbors)`
+(@fig-coarse-tuning).
 
 ![J-Index vs \# of Neighbours for kNN
 Model](../results/figures/20_coarse-knn-k-sweep.png){#fig-coarse-tuning}
 
-We then performed a finer sweep around the optimal k value, testing neighbors from `r knn_fine |> filter(.metric == "j_index") |> arrange(desc(mean)) |> head(n=1) |> pull(neighbors) - 10` to `r knn_fine |> filter(.metric == "j_index") |> arrange(desc(mean)) |> head(n=1) |> pull(neighbors) + 10` stepping by 1. The best performance was achieved at k=`r knn_fine |> filter(.metric == "j_index") |> arrange(desc(mean)) |> head(n=1) |> pull(neighbors)`.
+We then performed a finer sweep around the optimal k value, testing
+neighbors from
+`r knn_fine |> filter(.metric == "j_index") |> arrange(desc(mean)) |> head(n=1) |> pull(neighbors) - 10`
+to
+`r knn_fine |> filter(.metric == "j_index") |> arrange(desc(mean)) |> head(n=1) |> pull(neighbors) + 10`
+stepping by 1. The best performance was achieved at
+k=`r knn_fine |> filter(.metric == "j_index") |> arrange(desc(mean)) |> head(n=1) |> pull(neighbors)`.
 
-Evaluating the final kNN model on the validation set yielded a J-index of `r knn_val |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`.
-
+Evaluating the final kNN model on the validation set yielded a J-index
+of
+`r knn_val |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`.
 
 ### Logistic Regression
-For the logistic regression model, we performed backwards selection to identify the most informative predictors. Age, average glucose level, and the presence of pre-existing heart disease emerged as the strongest predictors of stroke. We then tuned the penalty and mixture parameters for the final model, with the best performance achieved at a penalty of `r logreg_params |> filter(.metric == "j_index") |> arrange(desc(mean)) |> head(n=1) |> pull(penalty)` and a mixture of `r logreg_params |> filter(.metric == "j_index") |> arrange(desc(mean)) |> head(n=1) |> pull(mixture)`. Evaluating the final logistic regression model on the validation set yielded a J-index of `r logreg_val |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`.
+
+For the logistic regression model, we performed backwards selection to
+identify the most informative predictors. Age, average glucose level,
+and the presence of pre-existing heart disease emerged as the strongest
+predictors of stroke. We then tuned the penalty and mixture parameters
+for the final model, with the best performance achieved at a penalty of
+`r logreg_params |> filter(.metric == "j_index") |> arrange(desc(mean)) |> head(n=1) |> pull(penalty)`
+and a mixture of
+`r logreg_params |> filter(.metric == "j_index") |> arrange(desc(mean)) |> head(n=1) |> pull(mixture)`.
+Evaluating the final logistic regression model on the validation set
+yielded a J-index of
+`r logreg_val |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`.
 
 ## XGBoost
+
 For the **XGBoost model**, we analyzed feature importance. Age and
 average glucose level emerged as the most critical features
 (@fig-xgb-vip).
@@ -190,8 +473,15 @@ average glucose level emerged as the most critical features
 ![XGBoost Feature
 Importance](../results/figures/23_xgboost-feature-importance.png){#fig-xgb-vip}
 
-We then perform hyperparameter tuning on several key parameters such as number of trees, tree depth, learning rate, and minimum number of observations in a node. The best performance was achieved with `r xgb_params |> pull(trees)` trees, a tree depth of `r xgb_params |> pull(tree_depth)`, a learning rate of `r xgb_params |> pull(learn_rate) |> round(4)`, and a minimum number of observations in a node of `r xgb_params |> pull(min_n)`. Evaluating the final XGBoost model on the validation set yielded a J-index of `r xgb_val |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`.
-
+We then perform hyperparameter tuning on several key parameters such as
+number of trees, tree depth, learning rate, and minimum number of
+observations in a node. The best performance was achieved with
+`r xgb_params |> pull(trees)` trees, a tree depth of
+`r xgb_params |> pull(tree_depth)`, a learning rate of
+`r xgb_params |> pull(learn_rate) |> round(4)`, and a minimum number of
+observations in a node of `r xgb_params |> pull(min_n)`. Evaluating the
+final XGBoost model on the validation set yielded a J-index of
+`r xgb_val |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`.
 
 ## Model Selection
 
@@ -290,10 +580,10 @@ populations. Other areas that can be explored are specific aspects of
 the predictors explored in this analysis. For example, one of our
 predictors is BMI, which is shown to be linked to all-cause mortality.
 However, BMI does not differentiate between fat mass and muscle mass
-[@cheung2021]. Considering muscle mass is inversely associated
-with mortality [@lee2018], researchers may want to see to
-what degree does fat mass associate with all-cause mortality, and in our
-specific case, stroke.
+[@cheung2021]. Considering muscle mass is inversely associated with
+mortality [@lee2018], researchers may want to see to what degree does
+fat mass associate with all-cause mortality, and in our specific case,
+stroke.
 
 # References
 
