@@ -21,6 +21,11 @@ out_training   <- opts$out_training
 out_validation <- opts$out_validation
 out_testing    <- opts$out_testing
 
+# Check file format
+if (!grepl("\\.csv$", input_path)) {
+  stop("Input file must be a CSV file.")
+}
+
 stroke <- load_stroke_data(input_path)
 
 #Rename columns to all lowercase
@@ -30,6 +35,70 @@ stroke_colnames <- stroke |>
   tolower()
 
 colnames(stroke) <- stroke_colnames
+
+# ── Data Validation ──────────────────────────────────────────────────────────
+
+# 1. Correct column names
+required_cols <- c("id", "gender", "age", "hypertension", "heart_disease",
+                   "ever_married", "work_type", "residence_type",
+                   "avg_glucose_level", "bmi", "smoking_status", "stroke")
+missing_cols <- setdiff(required_cols, names(stroke))
+if (length(missing_cols) > 0) {
+  stop("Missing required columns: ", paste(missing_cols, collapse = ", "))
+}
+
+# 2. No empty observations
+all_na_rows <- rowSums(is.na(stroke)) == ncol(stroke)
+if (any(all_na_rows)) {
+  stop("Dataset contains ", sum(all_na_rows), " completely empty rows.")
+}
+
+# 3. Missingness not beyond expected threshold (20% for any column)
+for (col in names(stroke)) {
+  pct <- mean(is.na(stroke[[col]]))
+  if (pct > 0.20) {
+    stop("Column '", col, "' missingness is ", round(pct * 100, 1), "% - exceeds 20% threshold.")
+  }
+}
+
+# 4. Correct data types
+for (col in c("age", "avg_glucose_level")) {
+  if (!is.numeric(stroke[[col]])) stop("Column '", col, "' must be numeric.")
+}
+
+# 5. No duplicate observations
+if (anyDuplicated(stroke$id) > 0) {
+  stop("Dataset contains duplicate IDs.")
+}
+
+# 6. No outlier/anomalous values
+if (any(stroke$age < 0 | stroke$age > 120, na.rm = TRUE)) {
+  stop("Column 'age' contains values outside expected range [0, 120].")
+}
+if (any(stroke$avg_glucose_level <= 0, na.rm = TRUE)) {
+  stop("Column 'avg_glucose_level' contains non-positive values.")
+}
+
+# 7. Correct category levels
+valid_levels <- list(
+  gender         = c("Male", "Female", "Other"),
+  work_type      = c("Private", "Self-employed", "Govt_job", "children", "Never_worked"),
+  residence_type = c("Urban", "Rural"),
+  ever_married   = c("Yes", "No"),
+  smoking_status = c("formerly smoked", "never smoked", "smokes", "Unknown")
+)
+for (col in names(valid_levels)) {
+  invalid <- setdiff(unique(stroke[[col]]), valid_levels[[col]])
+  if (length(invalid) > 0) {
+    stop("Unexpected values in '", col, "': ", paste(invalid, collapse = ", "))
+  }
+}
+
+# 8. Target variable follows expected distribution (stroke rate between 1%-50%)
+stroke_rate <- mean(stroke$stroke == 1, na.rm = TRUE)
+if (stroke_rate < 0.01 | stroke_rate > 0.50) {
+  stop("Stroke rate of ", round(stroke_rate * 100, 1), "% is outside expected range [1%, 50%].")
+}
 
 #Convert Unknown's to NA
 stroke <- stroke |>
@@ -71,6 +140,11 @@ stroke$smoking_status <- recode_factor(stroke$smoking_status,
 #For some reason bmi is of type char probably because of N/A, 
 # converting to double here
 stroke <- stroke |> mutate(bmi = as.numeric(as.character(bmi)))
+
+# 9. BMI outlier check (after numeric conversion)
+if (any(stroke$bmi < 10 | stroke$bmi > 100, na.rm = TRUE)) {
+  stop("Column 'bmi' contains values outside expected range [10, 100].")
+}
 
 #Dropping NA
 stroke <- stroke |> drop_na()
