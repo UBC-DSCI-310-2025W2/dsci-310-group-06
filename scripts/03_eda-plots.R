@@ -1,5 +1,5 @@
 source("renv/activate.R")
-source("scripts/functions/get_summary_stats.R")
+library(exploretraintest)
 
 library(tidyverse)
 library(tidymodels)
@@ -7,8 +7,6 @@ library(gridExtra)
 library(GGally)
 library(scales)
 library(grid)
-
-source("scripts/functions/set_plot_theme.R")
 set_plot_theme()
 
 library(docopt)
