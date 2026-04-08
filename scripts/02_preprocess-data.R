@@ -21,9 +21,6 @@ out_training   <- opts$out_training
 out_validation <- opts$out_validation
 out_testing    <- opts$out_testing
 
-opts           <- docopt(doc)
-input_path     <- opts$input
-
 # Check file format
 if (!grepl("\\.csv$", input_path)) {
   stop("Input file must be a CSV file.")
@@ -56,15 +53,18 @@ if (any(all_na_rows)) {
   stop("Dataset contains ", sum(all_na_rows), " completely empty rows.")
 }
 
-# 3. Missingness not beyond expected threshold (BMI <= 20%)
-bmi_missing_pct <- mean(is.na(stroke$bmi))
-if (bmi_missing_pct > 0.20) {
-  stop("BMI missingness is ", round(bmi_missing_pct * 100, 1), "% - exceeds 20% threshold.")
+# 3. Missingness not beyond expected threshold (20% for any column)
+for (col in names(stroke)) {
+  pct <- mean(is.na(stroke[[col]]))
+  if (pct > 0.20) {
+    stop("Column '", col, "' missingness is ", round(pct * 100, 1), "% - exceeds 20% threshold.")
+  }
 }
 
 # 4. Correct data types
-if (!is.numeric(stroke$age)) stop("Column 'age' must be numeric.")
-if (!is.numeric(stroke$avg_glucose_level)) stop("Column 'avg_glucose_level' must be numeric.")
+for (col in c("age", "avg_glucose_level")) {
+  if (!is.numeric(stroke[[col]])) stop("Column '", col, "' must be numeric.")
+}
 
 # 5. No duplicate observations
 if (anyDuplicated(stroke$id) > 0) {
@@ -80,10 +80,18 @@ if (any(stroke$avg_glucose_level <= 0, na.rm = TRUE)) {
 }
 
 # 7. Correct category levels
-valid_gender <- c("Male", "Female", "Other")
-invalid_gender <- setdiff(unique(stroke$gender), valid_gender)
-if (length(invalid_gender) > 0) {
-  stop("Unexpected gender values: ", paste(invalid_gender, collapse = ", "))
+valid_levels <- list(
+  gender         = c("Male", "Female", "Other"),
+  work_type      = c("Private", "Self-employed", "Govt_job", "children", "Never_worked"),
+  residence_type = c("Urban", "Rural"),
+  ever_married   = c("Yes", "No"),
+  smoking_status = c("formerly smoked", "never smoked", "smokes", "Unknown")
+)
+for (col in names(valid_levels)) {
+  invalid <- setdiff(unique(stroke[[col]]), valid_levels[[col]])
+  if (length(invalid) > 0) {
+    stop("Unexpected values in '", col, "': ", paste(invalid, collapse = ", "))
+  }
 }
 
 # 8. Target variable follows expected distribution (stroke rate between 1%-50%)
@@ -132,6 +140,11 @@ stroke$smoking_status <- recode_factor(stroke$smoking_status,
 #For some reason bmi is of type char probably because of N/A, 
 # converting to double here
 stroke <- stroke |> mutate(bmi = as.numeric(as.character(bmi)))
+
+# 9. BMI outlier check (after numeric conversion)
+if (any(stroke$bmi < 10 | stroke$bmi > 100, na.rm = TRUE)) {
+  stop("Column 'bmi' contains values outside expected range [10, 100].")
+}
 
 #Dropping NA
 stroke <- stroke |> drop_na()
