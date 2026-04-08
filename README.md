@@ -28,33 +28,69 @@ The dataset is automatically downloaded during execution using a script. No manu
 Please follow these steps to reproduce the analysis:
 ### 1. Set up environment
 
+Clone the repository:
+
+```bash
+git clone https://github.com/UBC-DSCI-310-2025W2/dsci-310-group-06.git
+cd dsci-310-group-06
+```
+
 Build the Docker container:
-docker build -t dsci310-project .
+
+```bash
+docker build -t navyasehgal/dsci310group6:latest .
+```
 
 Run the container:
-docker run --rm -it -v $(pwd):/home/project dsci310-project bash
 
+```bash
+docker run -p 8787:8787 -it navyasehgal/dsci310group6:latest
+```
+### Option A: Use RStudio (interactive)
+The RStudio instance will be available at:
+
+http://localhost:8787
+
+Username: `rstudio`  
+Password: printed in the terminal  
+
+To set your own password:
+
+```bash
+docker run -p 8787:8787 -e PASSWORD=<YOUR_PASSWORD> -it navyasehgal/dsci310group6:latest
+```
+### Option B: Run full pipeline
 ### 2. Execute Analysis via Makefile
 
 Once inside the project environment (either via Docker or your local terminal), use the `Makefile` to automate the data processing, modeling, and reporting:
 
--   **To run the entire pipeline and generate the report:** `make all`
--   **To clean all generated data and results:** `make clean`
+- To run the entire pipeline:
 
-The final rendered report will be available in the analysis/ folder after running make all.
-analysis/stroke_risk_prediction.qmd
+```bash
+make all
+```
+
+- To clean outputs:
+
+```bash
+make clean
+```
+
+The final rendered report will be available in the `analysis/` folder after running `make all`. 
 
 ## Example Usage
 
-Run:
-
+```bash
 make all
+```
 
 This will:
 - Download and preprocess the data
 - Train models
 - Generate evaluation results
 - Produce the final report
+
+You can use RStudio in the browser to explore the data, scripts, and results interactively, or run the full pipeline using the Makefile commands below.
 
 ## Dependencies
 The project environment is managed via `renv`. The analysis requires **R (version 4.3.2)** and **Quarto**. The full list of R package dependencies and their exact versions are recorded in [`renv.lock`](renv.lock). Key packages include:
