@@ -21,8 +21,6 @@ Please follow these steps to reproduce the analysis:
 
 ### 1. Run Docker Image
 
-### 1. Run Docker Image
-
 To build the image, run the following command in your terminal:
 `docker build -t navyasehgal/dsci310group6:latest .`
 
@@ -36,8 +34,8 @@ The RStudio instance will be hosted at `localhost:8787`. The default username is
 
 Once inside the project environment (either via Docker or your local terminal), use the `Makefile` to automate the data processing, modeling, and reporting:
 
--   **To run the entire pipeline and generate the report:** `bash     make all`
--   **To clean all generated data and results:** `bash     make clean`
+-   **To run the entire pipeline and generate the report:** `make all`
+-   **To clean all generated data and results:** `make clean`
 
 The final report is generated as a Quarto document located at:
 `analysis/stroke_risk_prediction.qmd`
