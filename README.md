@@ -1,6 +1,6 @@
 # DSCI 310 Group 6 - Stroke Risk Predictions
 
-# Contributors
+## Contributors
 
 1.  Aden Chan (@21chanas3) - 93727782
 2.  Duncan Harrop (@harr0p) - 56144421
@@ -15,32 +15,84 @@ To formalize these predictions and address the severe class imbalance inherent i
 
 ***What this means:*** Our findings demonstrate that utilizing data rebalancing techniques like SMOTE and optimizing for comprehensive metrics like the J-index can successfully combat class imbalance and reduce dangerous Type II errors (false negatives) where at-risk patients are missed. However, the model still produced a notable number of false positives and exhibited some difficulty generalizing to new data. This indicates that while clinical snapshots are useful, building a highly accurate, clinically viable predictive tool requires incorporating broader, patient-specific variables, such as genetic history, detailed lifestyle choices, and longitudinal health records.
 
+## Data Access
+
+This project uses the Stroke Prediction Dataset from Kaggle:
+
+https://www.kaggle.com/datasets/fedesoriano/stroke-prediction-dataset
+
+The dataset is automatically downloaded during execution using a script. No manual setup or Kaggle API configuration is required.
+
 # How to Run Data Analysis
 
 Please follow these steps to reproduce the analysis:
+### 1. Set up environment
 
-### 1. Run Docker Image
+Clone the repository:
 
-To build the image, run the following command in your terminal:
-`docker build -t navyasehgal/dsci310group6:latest .`
+```bash
+git clone https://github.com/UBC-DSCI-310-2025W2/dsci-310-group-06.git
+cd dsci-310-group-06
+```
 
-To run the container and access the environment, use:
-`docker run -p 8787:8787 -it navyasehgal/dsci310group6:latest`
+Build the Docker container:
 
-The RStudio instance will be hosted at `localhost:8787`. The default username is `rstudio`. By default, a random password will be printed to the terminal console during startup. If you prefer to specify your own password, run the container using the `-e PASSWORD` flag:
-`docker run -p 8787:8787 -e PASSWORD=<YOUR_PASSWORD> -it navyasehgal/dsci310group6:latest`
+```bash
+docker build -t navyasehgal/dsci310group6:latest .
+```
 
+Run the container:
+
+```bash
+docker run -p 8787:8787 -it navyasehgal/dsci310group6:latest
+```
+### Option A: Use RStudio (interactive)
+The RStudio instance will be available at:
+
+http://localhost:8787
+
+Username: `rstudio`  
+Password: printed in the terminal  
+
+To set your own password:
+
+```bash
+docker run -p 8787:8787 -e PASSWORD=<YOUR_PASSWORD> -it navyasehgal/dsci310group6:latest
+```
+### Option B: Run full pipeline
 ### 2. Execute Analysis via Makefile
 
 Once inside the project environment (either via Docker or your local terminal), use the `Makefile` to automate the data processing, modeling, and reporting:
 
--   **To run the entire pipeline and generate the report:** `bash     make all`
--   **To clean all generated data and results:** `bash     make clean`
+- To run the entire pipeline:
 
-The final report is generated as a Quarto document located at:
-`analysis/stroke_risk_prediction.qmd`
+```bash
+make all
+```
 
-# Dependencies
+- To clean outputs:
+
+```bash
+make clean
+```
+
+The final rendered report will be available in the `analysis/` folder after running `make all`. 
+
+## Example Usage
+
+```bash
+make all
+```
+
+This will:
+- Download and preprocess the data
+- Train models
+- Generate evaluation results
+- Produce the final report
+
+You can use RStudio in the browser to explore the data, scripts, and results interactively, or run the full pipeline using the Makefile commands below.
+
+## Dependencies
 The project environment is managed via `renv`. The analysis requires **R (version 4.3.2)** and **Quarto**. The full list of R package dependencies and their exact versions are recorded in [`renv.lock`](renv.lock). Key packages include:
 
 | Package | Version | Purpose |
@@ -61,5 +113,5 @@ The project environment is managed via `renv`. The analysis requires **R (versio
 | `kableExtra` | 1.4.0 | Table formatting in report |
 | `docopt` | 0.7.2 | CLI argument parsing in scripts |
 
-# Licensing
+## Licensing
 This project is offered under the Attribution 4.0 International (CC BY 4.0) License. The software provided in this project is offered under the MIT open source license. See [License](./LICENSE.md) for more information.
