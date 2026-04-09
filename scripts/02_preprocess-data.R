@@ -1,9 +1,32 @@
 source("renv/activate.R")
+library(exploretraintest)
 
 library(tidyverse)
 library(tidymodels)
+library(docopt)
 
-stroke <- read_csv("data/healthcare-dataset-stroke-data.csv")
+doc <- "
+Usage: 02_preprocess-data.R --input=<path> --out_training=<path> --out_validation=<path> --out_testing=<path>
+
+Options:
+  --input=<path>           Path to raw stroke CSV
+  --out_training=<path>    Output path for training split CSV
+  --out_validation=<path>  Output path for validation split CSV
+  --out_testing=<path>     Output path for testing split CSV
+"
+
+opts           <- docopt(doc)
+input_path     <- opts$input
+out_training   <- opts$out_training
+out_validation <- opts$out_validation
+out_testing    <- opts$out_testing
+
+# Check file format
+if (!grepl("\\.csv$", input_path)) {
+  stop("Input file must be a CSV file.")
+}
+
+stroke <- load_stroke_data(input_path)
 
 #Rename columns to all lowercase
 stroke_colnames <- stroke |>
@@ -12,6 +35,70 @@ stroke_colnames <- stroke |>
   tolower()
 
 colnames(stroke) <- stroke_colnames
+
+# ── Data Validation ──────────────────────────────────────────────────────────
+
+# 1. Correct column names
+required_cols <- c("id", "gender", "age", "hypertension", "heart_disease",
+                   "ever_married", "work_type", "residence_type",
+                   "avg_glucose_level", "bmi", "smoking_status", "stroke")
+missing_cols <- setdiff(required_cols, names(stroke))
+if (length(missing_cols) > 0) {
+  stop("Missing required columns: ", paste(missing_cols, collapse = ", "))
+}
+
+# 2. No empty observations
+all_na_rows <- rowSums(is.na(stroke)) == ncol(stroke)
+if (any(all_na_rows)) {
+  stop("Dataset contains ", sum(all_na_rows), " completely empty rows.")
+}
+
+# 3. Missingness not beyond expected threshold (20% for any column)
+for (col in names(stroke)) {
+  pct <- mean(is.na(stroke[[col]]))
+  if (pct > 0.20) {
+    stop("Column '", col, "' missingness is ", round(pct * 100, 1), "% - exceeds 20% threshold.")
+  }
+}
+
+# 4. Correct data types
+for (col in c("age", "avg_glucose_level")) {
+  if (!is.numeric(stroke[[col]])) stop("Column '", col, "' must be numeric.")
+}
+
+# 5. No duplicate observations
+if (anyDuplicated(stroke$id) > 0) {
+  stop("Dataset contains duplicate IDs.")
+}
+
+# 6. No outlier/anomalous values
+if (any(stroke$age < 0 | stroke$age > 120, na.rm = TRUE)) {
+  stop("Column 'age' contains values outside expected range [0, 120].")
+}
+if (any(stroke$avg_glucose_level <= 0, na.rm = TRUE)) {
+  stop("Column 'avg_glucose_level' contains non-positive values.")
+}
+
+# 7. Correct category levels
+valid_levels <- list(
+  gender         = c("Male", "Female", "Other"),
+  work_type      = c("Private", "Self-employed", "Govt_job", "children", "Never_worked"),
+  residence_type = c("Urban", "Rural"),
+  ever_married   = c("Yes", "No"),
+  smoking_status = c("formerly smoked", "never smoked", "smokes", "Unknown")
+)
+for (col in names(valid_levels)) {
+  invalid <- setdiff(unique(stroke[[col]]), valid_levels[[col]])
+  if (length(invalid) > 0) {
+    stop("Unexpected values in '", col, "': ", paste(invalid, collapse = ", "))
+  }
+}
+
+# 8. Target variable follows expected distribution (stroke rate between 1%-50%)
+stroke_rate <- mean(stroke$stroke == 1, na.rm = TRUE)
+if (stroke_rate < 0.01 | stroke_rate > 0.50) {
+  stop("Stroke rate of ", round(stroke_rate * 100, 1), "% is outside expected range [1%, 50%].")
+}
 
 #Convert Unknown's to NA
 stroke <- stroke |>
@@ -54,6 +141,11 @@ stroke$smoking_status <- recode_factor(stroke$smoking_status,
 # converting to double here
 stroke <- stroke |> mutate(bmi = as.numeric(as.character(bmi)))
 
+# 9. BMI outlier check (after numeric conversion)
+if (any(stroke$bmi < 10 | stroke$bmi > 100, na.rm = TRUE)) {
+  stop("Column 'bmi' contains values outside expected range [10, 100].")
+}
+
 #Dropping NA
 stroke <- stroke |> drop_na()
 
@@ -70,12 +162,13 @@ stroke_training <- training(stroke_split)
 stroke_validation <- validation(stroke_split)
 stroke_testing <- testing(stroke_split)
 
-# Create the directory if it doesn't exist
-if (!dir.exists("data/processed")) {
-  dir.create("data/processed", recursive = TRUE)
+# Create output directory if it doesn't exist
+for (out_path in c(out_training, out_validation, out_testing)) {
+  out_dir <- dirname(out_path)
+  if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
 }
 
-# Save data to seperate files
-write_csv(stroke_training, "data/processed/stroke_training.csv")
-write_csv(stroke_validation, "data/processed/stroke_validation.csv")
-write_csv(stroke_testing, "data/processed/stroke_testing.csv")
+# Save data to separate files
+write_csv(stroke_training,   out_training)
+write_csv(stroke_validation, out_validation)
+write_csv(stroke_testing,    out_testing)
