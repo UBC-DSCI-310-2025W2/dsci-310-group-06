@@ -61,21 +61,29 @@ heart disease, residence type, average glucose level, BMI, smoking
 status, work type, marital status, and prior stroke occurrence. After
 cleaning and wrangling the data, we conducted exploratory data analysis
 to identify patterns between these predictors and stroke outcomes, then
-developed a k-nearest neighbors classification model using an 80/20
-train-test split and 5-fold cross-validation for model tuning.
+trained and compared three classification models: k-nearest neighbors,
+logistic regression with elastic-net regularization, and XGBoost. We used
+an 80/10/10 train-validation-test split and 5-fold cross-validation for
+hyperparameter tuning and Youden's J statistic was used as the primary
+evaluation metric to account for severe class imbalance.
 
 Our exploratory analysis suggested that age, hypertension, heart
 disease, BMI, and average glucose level were the most informative
 predictors, while variables such as id, work type, and marital status
-contributed little to model performance. The final model achieved high
-overall accuracy on the test set, but the dataset was heavily imbalanced
-and the model classified nearly all cases as "No stroke," failing to
-meaningfully identify positive stroke cases.
+contributed little to model performance. Backward stepwise selection in
+the logistic regression model retained age, average glucose level,
+hypertension, heart disease, and smoking status. On the validation set,
+logistic regression achieved the highest J-index of the three models and
+was selected as the final candidate. Evaluated on the held-out test set,
+it achieved a J-index of `r test_metrics |> filter(.metric == "j_index") |> pull(.estimate) |> round(4)`, correctly identifying most stroke cases while
+producing a moderate number of false positives.
 
-These findings suggest that future work should consider alternative
-modeling strategies, better methods for handling class imbalance, and
-additional predictors related to lifestyle, genetics, and medical
-history.
+These findings suggest that a regularized logistic regression model can
+meaningfully predict stroke risk from basic clinical features, though
+the high false positive rate indicates room for improvement. Future work
+should explore additional predictors related to lifestyle, genetics, and
+medical history, as well as alternative strategies for handling class
+imbalance.
 
 # Introduction
 
@@ -92,7 +100,7 @@ risk factor of stroke in both developing and developed nations.
 
 However, it is worth noting that there are other risk factors that
 exist, some of which are challenging to quantify accurately. These
-factors contribute to the complexity of predicting likelihood of a
+factors contribute to the complexity of predicting the likelihood of a
 stroke. In light of this, our research question aims to address this
 challenge by **exploring the ability to accurately predict the
 likelihood of a stroke in a patient given a set of clinical features**.
@@ -101,7 +109,7 @@ To answer this research question, we will be utilizing the Stroke
 Prediction Dataset, available via Kaggle. The dataset comprises `{r} nrow(stroke)`
 observations and contains `{r} ncol(stroke)` different variables which make up our
 clinical features for patients. These variables include gender, age,
-hypertension, heart disease, marriage status, type of work
+hypertension, heart disease, marital status, type of work
 (self-employed/private/children/government/never worked), residence
 (rural or urban), average glucose levels, BMI, smoking status, and
 whether the patient has ever had a stroke.
@@ -129,7 +137,7 @@ the following steps: renaming of columns, converting the string
 “Unknown” into NA values, converting categorical variables into factors,
 renaming these factors into human-readable names, converting columns
 that should be numerical into doubles. We will drop the rows with *NA*
-values from the dataset, so that we continue analysis only will
+values from the dataset, so that we continue analysis only with
 fully-formed data.
 
 To predict whether a patient will experience a stroke, we will develop a
@@ -206,8 +214,7 @@ age is one of the strongest predictors of stroke in the dataset.
 ![Proportion of stroke cases by age
 group](../results/figures/03_stroke-by-age.png){#fig-age}
 
-Patients with hypertension (@fig-hypertension) and heart disease
-(@fig-heartdisease) are roughly twice as likely to have a stroke, which
+Patients with hypertension (@fig-hypertension) are roughly twice as likely to have a stroke, which
 is around `{r} stroke_training |> filter(hypertension == "Yes") |> summarize(prop = mean(stroke == "Yes")) |> pull(prop) |> scales::percent(accuracy = 0.1)` of the cases.
 
 ![Hypertension](../results/figures/04_stroke-by-hypertension.png){#fig-hypertension}
@@ -240,7 +247,7 @@ substantial overlap between the two groups.
 ![BMI by stroke
 status](../results/figures/08_bmi-by-stroke.png){#fig-bmi}
 
-The percentage of cases are quite similar between the three groups.
+The percentages of cases are quite similar between the three groups.
 However, those who have formerly smoked have a slightly higher risk of
 stroke than those who smoke. This may be due to current smokers being
 younger or having less overall damage than those who are former smokers.
@@ -253,7 +260,7 @@ risk of getting a stroke.
 
 ![Stroke by smoke status](../results/figures/09_stroke-by-smoking.png)
 
-Those who are self-employed are roughly `{r} round((stroke_training |> filter(work_type == "Self-employed") |> summarize(p = mean(stroke == "Yes")) |> pull(p)) / (stroke |> filter(work_type != "Self-employed") |> summarize(p = mean(stroke == "Yes")) |> pull(p)), 0)` times as likely to suffer a stroke than those who work in other sectors, at around `{r} stroke_training |> filter(work_type == "Self-employed") |> summarize(p = mean(stroke == "Yes")) |> pull(p) |> scales::percent(accuracy = 1)` of cases.
+Those who are self-employed are roughly `{r} round((stroke_training |> filter(work_type == "Self-employed") |> summarize(p = mean(stroke == "Yes")) |> pull(p)) / (stroke_training |> filter(work_type != "Self-employed") |> summarize(p = mean(stroke == "Yes")) |> pull(p)), 0)` times as likely to suffer a stroke than those who work in other sectors, at around `{r} stroke_training |> filter(work_type == "Self-employed") |> summarize(p = mean(stroke == "Yes")) |> pull(p) |> scales::percent(accuracy = 1)` of cases.
 
 ![Stroke by work type](../results/figures/10_stroke-by-work-type.png)
 
@@ -261,7 +268,7 @@ Those who are self-employed are roughly `{r} round((stroke_training |> filter(wo
 
 To further explore the relationships between stroke and various clinical
 variables, we conducted an analysis focusing on two key variables in
-relations to strokes. By examining their associations with stroke, we
+relation to strokes. By examining their associations with stroke, we
 aimed to uncover potential interrelations and gain deeper insights into
 their significance.
 
@@ -275,12 +282,12 @@ slightly greater in older men than older women; however, age seems to be
 the more dominant feature. We decided to still consider gender in our
 model as we were interested in this difference as there is a chance some
 participants in the female population were pregnant, making blood more
-likely clot which could cause a stroke.
+likely to clot which could cause a stroke.
 
 ![Stroke by age and
 smoking](../results/figures/12_stroke-by-age-smoking.png)
 
-All smoking groups had roughly equal numbers of stroke cases with the common ground being that with age, there was an average increase in percentage of strokes. The main difference is that the peak percentage was highest in the group that currently “smokes” at `{r} stroke_training |> filter(smoking_status == "Smokes") |> group_by(age = cut_interval(age, n = 5)) |> summarize(p = mean(stroke == "Yes")) |> pull(p) |> max() |> scales::percent(accuracy = 1)`. The “never” smoking and “formerly” smoking groups peaked at `{r} stroke_training |> filter(smoking_status == "Never") |> group_by(age = cut_interval(age, n = 5)) |> summarize(p = mean(stroke == "Yes")) |> pull(p) |> max() |> scales::percent(accuracy = 1)` and `{r} stroke_training |> filter(smoking_status == "Formerly") |> group_by(age = cut_interval(age, n = 5)) |> summarize(p = mean(stroke == "Yes")) |> pull(p) |> max() |> scales::percent(accuracy = 1)`, respectively. Interestingly, former smokers had higher percentages
+All smoking groups had roughly equal numbers of stroke cases with the common ground being that with age, there was an average increase in percentage of strokes. The peak stroke percentage among the oldest age group was `{r} stroke_training |> filter(smoking_status == "Smokes") |> group_by(age = cut_interval(age, n = 5)) |> summarize(p = mean(stroke == "Yes")) |> pull(p) |> max() |> scales::percent(accuracy = 1)` for current smokers, `{r} stroke_training |> filter(smoking_status == "Never") |> group_by(age = cut_interval(age, n = 5)) |> summarize(p = mean(stroke == "Yes")) |> pull(p) |> max() |> scales::percent(accuracy = 1)` for those who never smoked, and `{r} stroke_training |> filter(smoking_status == "Formerly") |> group_by(age = cut_interval(age, n = 5)) |> summarize(p = mean(stroke == "Yes")) |> pull(p) |> max() |> scales::percent(accuracy = 1)` for former smokers. Interestingly, former smokers had higher percentages
 than those who never smoked. Both of those groups had lower percentages
 in comparison to current smokers, especially as age increases. This
 suggests a relationship that has been observed in the past, where
@@ -303,7 +310,7 @@ heart condition.
 ![Stroke by age and bmi](../results/figures/15_stroke-by-age-bmi.png)
 
 Age seems to be the main predictor of stroke when BMI is roughly under
-25. However, this is not for a majority of the cases. Most cases where
+25. However, this applies to only a minority of cases. Most cases where
 participants have suffered a stroke, they tend to be above 50 years old
 and have a BMI of greater than 25.
 
@@ -386,7 +393,6 @@ following features as predictors of stroke.
 | Average glucose level | Average glucose level in blood (mg/dL)         |
 | BMI                   | Body mass index                                |
 | Smoking status        | Current smoker, former smoker, or never smoked |
-| Stroke                | Whether the person has had a stroke or not     |
 
 And these are the features we will not be using in our analysis:
 
@@ -459,7 +465,7 @@ knn_val
 We get a final score of
 `{r} knn_val |> filter(.metric == "j_index") |> pull(.estimate) |> round(3)`,
 which is not too good as the metric is on a scale from \[0,1\]. From the
-confusion matrix, we can see that the model is predicting a lot of True
+confusion matrix, we can see that the model is predicting a lot of true
 negatives.
 
 ### Logistic Regression
@@ -476,8 +482,8 @@ We first define a recipe without SMOTE to maintain the class
 distribution in the original dataset during backward selection.
 
 The backward selection procedure removes predictors that do not improve
-the AIC, and resulted in only the terms left above. We will use the
-selected terms below in the final model.
+the AIC, resulting in only the terms listed below. We will use these
+selected terms in the final model.
 
 ```{r}
 #| label: logreg-backward-selection-terms
@@ -533,15 +539,15 @@ Importance](../results/figures/23_xgboost-feature-importance.png){#fig-xgb-vip}
 
 Features with importance that are near zero mainly contribute noise
 without improving prediction. However, due to the dummy step on
-catagorical predictors, we can see their their importance is split
+categorical predictors, we can see their importance is split
 across its levels and thus the importance of the predictor must be
 interpreted as the sum of its importances across its derived dummy
 variables.
 
 Based on the importance ranking above, `age`, `avg_glucose_level`,
 `bmi`, `hypertension`, `heart_disease`, and `smoking_status` are
-informative while we can and drop categorical predictors that were
-consistently near the bottom such as `gender` .
+informative while we can drop categorical predictors that were
+consistently near the bottom such as `gender`.
 
 #### Bayesian Hyperparameter Tuning
 
@@ -566,13 +572,13 @@ above and will be used to train the final model.
 xgb_val
 ```
 
-![XGBoost Feature
-Importance](../results/figures/24_xgboost-confusion-matrix.png){#fig-xgb-cm}
+![XGBoost Confusion
+Matrix](../results/figures/24_xgboost-confusion-matrix.png){#fig-xgb-cm}
 
 ## Model Selection
 
 We compared the three models on the validation set using J-index,
-sensitivity, and accuracy (@fig-metrics).
+sensitivity, and specificity (@fig-metrics).
 
 ![Validation Set Metrics by
 Model](../results/figures/25_validation-metrics-comparison.png){#fig-metrics}
@@ -583,7 +589,8 @@ model handled false positives and false negatives.
 ![Confusion Matrices on Validation
 Set](../results/figures/26_validation-confusion-matrices.png){#fig-cms}
 
-Looking at the three models, XGBoost performed the best in terms of J-Index. Inspecting the confusion matrices, we can see that it outperformed both the kNN and Logistic Regression models in terms of sensitivity, successfully eliminating all False Negatives (`{r} xgb_cm |> filter(Truth == "Yes", Prediction == "No") |> pull(n)`). While the XGBoost model produced a higher number of False Positives (`{r} xgb_cm |> filter(Truth == "No", Prediction == "Yes") |> pull(n)`) compared to kNN (`{r} knn_cm |> filter(Truth == "No", Prediction == "Yes") |> pull(n)`) and Logistic Regression (`{r} log_cm |> filter(Truth == "No", Prediction == "Yes") |> pull(n)`), its perfect capture of positive stroke cases significantly boosted its overall performance. As the J-index metric weights both sensitivity and specificity equally, we will select the XGBoost model as our final candidate.
+Looking at the three models, Logistic Regression performed the best in terms of J-Index. Note that in the metrics tables above, because tidymodels treats the first factor level ("No") as the event, the reported "sensitivity" actually measures the true negative rate (specificity in the clinical sense) and "specificity" measures the true positive rate (sensitivity in the clinical sense). The J-index is unaffected by this distinction. Inspecting the confusion matrices, Logistic Regression correctly identified all actual stroke cases, with `{r} log_cm |> filter(Truth == "Yes", Prediction == "No") |> pull(n)` False Negatives (missed strokes). It produced `{r} log_cm |> filter(Truth == "No", Prediction == "Yes") |> pull(n)` False Positives, fewer than kNN (`{r} knn_cm |> filter(Truth == "No", Prediction == "Yes") |> pull(n)`). While XGBoost had the fewest False Positives (`{r} xgb_cm |> filter(Truth == "No", Prediction == "Yes") |> pull(n)`), it missed more positive stroke cases (`{r} xgb_cm |> filter(Truth == "Yes", Prediction == "No") |> pull(n)` False Negatives), resulting in a lower J-index. As J-index weights both sensitivity and specificity equally, we will select the Logistic Regression model as our final candidate.
+
 # Final Evaluation
 
 ```{r}
@@ -614,9 +621,9 @@ disease and average glucose levels were also identified as significant
 risk factors for stroke.
 
 However, the research did not yield the expected results. The occurrence
-of false positives are quite high, and the model also predicted some
+of false positives is quite high, and the model also predicted some
 false negatives. In the context of stroke risk, false positives are less
-serious than false negatives, while the former would still result in
+serious than false negatives: while the former would still result in
 unnecessary usage of medical resources and costs, the latter could
 potentially have serious or lethal consequences.
 
@@ -644,26 +651,26 @@ medical professionals to improve their quality of life.
 
 Our findings can be used to educate future generations of the risk
 factors that are associated with having a stroke. This can encourage
-them to live a healthier and more positive lifestyle. As well, this may
+them to live a healthier and more positive lifestyle. This may also
 offer those who have risk factors that are genetic and not lifestyle
-related, a better understanding of their risks. This will also benefit
+related, a better understanding of their risks. Additionally, this will also benefit
 policy making. For example, if the model identifies smoking as a strong
 predictor of a stroke, people in public health can prioritize
-initiatives that better control smoking and be more specfic in their
+initiatives that better control smoking and be more specific in their
 messages regarding the long term effects.
 
 ## What future questions could this lead to?
 
 One key area for future exploration is the generalizability of the model
-in real-word scenarios. This is specifically important in the event of
+in real-world scenarios. This is specifically important in the event of
 insurance companies or governments deciding to use this technology in
 order to push their specific agendas. This may lead to unfair outcomes
 that discriminate or present biases based on the demographic of the
-original sample it was trained with. As refined and well-trained the
-model can be, it is crucial to consider the potential exceptions and
+original sample it was trained with. However refined and well-trained the
+model may be, it is crucial to consider the potential exceptions and
 variations that arise due to the oddities of human biology and
 environmental factors. Therefore this research can lead to future
-studies that focus on assessing the models ability across various
+studies that focus on assessing the model's ability across various
 populations. Other areas that can be explored are specific aspects of
 the predictors explored in this analysis. For example, one of our
 predictors is BMI, which is shown to be linked to all-cause mortality.
