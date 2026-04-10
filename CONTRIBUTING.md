@@ -1,4 +1,4 @@
-# Contributing to Predict AirBnB Nightly Price
+# Contributing to Predict Stroke Risk
 
 :+1::tada: First off, thanks for taking the time to contribute! :tada::+1:
 
@@ -13,7 +13,7 @@ The following is a set of guidelines for contributing to our project, which are 
 
 ## Code of Conduct  
 
-This project and everyone participating in it is governed by the [our Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [x@github.com](mailto:x@github.com).
+This project and everyone participating in it is governed by the [our Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [uchou92@student.ubc.ca](mailto:uchou92@student.ubc.ca).
 
 ## How Can I Contribute?  
 
