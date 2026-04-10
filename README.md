@@ -90,7 +90,7 @@ This will:
 - Generate evaluation results
 - Produce the final report
 
-You can use RStudio in the browser to explore the data, scripts, and results interactively, or run the full pipeline using the Makefile commands below.
+You can use RStudio in the browser to explore the data, scripts, and results interactively, or run the full pipeline using the Makefile commands above.
 
 ## Dependencies
 The project environment is managed via `renv`. The analysis requires **R (version 4.3.2)** and **Quarto**. The full list of R package dependencies and their exact versions are recorded in [`renv.lock`](renv.lock). Key packages include:
